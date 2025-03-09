@@ -1,93 +1,293 @@
 # Teste Automatizado
 
+Este repositório contém _scripts_ que realizam um teste de vazão de forma padrão e automatizada, com o processamento de dados para a geração de gráficos.
 
+Dessa forma:
 
-## Getting started
+- O _script_ [`executa-experimento`](scripts/executa-experimento) realiza a criação do cenário a partir de um arquivo `docker-compose.yml` e realiza os testes de vazão utilizando o `iperf`. Nesta rotina, também são verificados quais módulos do Python 3 estão faltando para que sejam instalados;
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+- O _script_ [`sumarizar-experimento`](scripts/sumarizar-experimento.py) realiza o processamento dos dados gerados pelo `iperf` e gera gráficos com os resultados.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+## Pré-requisitos
 
-## Add your files
+É necessário possuir os seguintes módulos do Python 3 instalados:
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+- pandas
+- matplotlib.pyplot
+- numpy
+- sys
+- json
+- csv
+- re
 
-```
-cd existing_repo
-git remote add origin https://git.rnp.br/gci/dev/melhorias-monipe/teste-automatizado.git
-git branch -M main
-git push -uf origin main
-```
+### Instalação dos módulos
 
-## Integrate with your tools
+- openSUSE Tumbleweed
+    ```bash
+    sudo zypper install --no-recommends python311-pandas python311-matplotlib python311-numpy
+    ```
 
-- [ ] [Set up project integrations](https://git.rnp.br/gci/dev/melhorias-monipe/teste-automatizado/-/settings/integrations)
+- Debian/Ubuntu
+    ```bash
+    sudo apt install --no-install-recommends python3-pandas python3-matplotlib python3-numpy
+    ```
 
-## Collaborate with your team
+## Uso
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+- `executa-experimento`
 
-## Test and Deploy
+    ```bash
+    ./executa-experimento -c <cpu cliente> -s <cpu servidor> -d <arquivo docker-compose.yml> -a <nome> -t <duração> -r <repetições> -b <banda máxima>
+    ```
 
-Use the built-in continuous integration in GitLab.
+    Os argumentos suportados são listados abaixo:
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+    - [obrigatório] `-c`, `--nucleo-cliente`: núcleo de CPU onde o cliente do `iperf` será executado;
 
-***
+    - [obrigatório] `-s`, `--nucleo-servidor`: núcleo de CPU onde o servidor do `iperf` será executado;
 
-# Editing this README
+    - [obrigatório] `-d`, `--docker-compose`: arquivo `docker-compose.yml` que contém a descrição do cenário;
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+    - [obrigatório] `-a`, `--apelido`: apelido do teste;
 
-## Suggestions for a good README
+    - [opcional] `-t`, `--duracao`: tempo de execução, em segundos, do teste. Quando não informado, o valor padrão é 10 segundos;
+    
+    - [opcional] `-b`, `--banda-maxima`: banda máxima, informada no formato aceito pelo `iperf3`. Ex.: 1M, 1G, 10G. Quando não informado, o valor padrão é 10G;
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+    - [opcional] `-r`, `--rodadas`: quantidade de repetições do teste. Quando não informado, o valor padrão é 1.
 
-## Name
-Choose a self-explaining name for your project.
+    Exemplo de uso:
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+    ```bash
+    ./executa-experimento -c 2 -s 1 -d ~/teste10Gbit/docker-compose.yml -a "cenario_1" -t 10 -r 5
+    ```
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+    No exemplo acima:
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+    - O teste será executado com o cliente utilizando o núcleo 2 e o servidor utilizando o núcleo 1;
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+    - O cenário será criado a partir do arquivo `docker-compose.yml` localizado em `~/teste10Gbit/`;
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+    - O apelido do teste será `cenario_1`;
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+    - O teste terá duração de 10 segundos;
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+    - O teste será repetido 5 vezes.
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+    Abaixo, é mostrado como ficaria a estrutura de diretórios após a execução do teste:
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+    ```bash
+    .
+    │   ├── resultados
+    │   ├── teste_1
+    │   │   ├── rodada_1
+    │   │   │   ├── rodada_1-teste_1-iperf3_client.csv
+    │   │   │   ├── rodada_1-teste_1-iperf3_server.csv
+    │   │   │   ├── rodada_1-teste_1-mpstat.csv
+    │   │   │   └── rodada_1-teste_1-mpstat.log
+    │   │   ├── rodada_2
+    │   │   │   ├── rodada_2-teste_1-iperf3_client.csv
+    │   │   │   ├── rodada_2-teste_1-iperf3_server.csv
+    │   │   │   ├── rodada_2-teste_1-mpstat.csv
+    │   │   │   └── rodada_2-teste_1-mpstat.log
+    │   │   ├── rodada_3
+    │   │   │   ├── rodada_3-teste_1-iperf3_client.csv
+    │   │   │   ├── rodada_3-teste_1-iperf3_server.csv
+    │   │   │   ├── rodada_3-teste_1-mpstat.csv
+    │   │   │   └── rodada_3-teste_1-mpstat.log
+    │   │   ├── rodada_4
+    │   │   │   ├── rodada_4-teste_1-iperf3_client.csv
+    │   │   │   ├── rodada_4-teste_1-iperf3_server.csv
+    │   │   │   ├── rodada_4-teste_1-mpstat.csv
+    │   │   │   └── rodada_4-teste_1-mpstat.log
+    │   │   ├── rodada_5
+    │   │   │   ├── rodada_5-teste_1-iperf3_client.csv
+    │   │   │   ├── rodada_5-teste_1-iperf3_server.csv
+    │   │   │   ├── rodada_5-teste_1-mpstat.csv
+    │   │   │   └── rodada_5-teste_1-mpstat.log
+    │   │   └── teste_1-experimento.log
+    │   ├── teste_2
+    │   │   ├── rodada_1
+    │   │   │   ├── rodada_1-teste_2-iperf3_client.csv
+    │   │   │   ├── rodada_1-teste_2-iperf3_server.csv
+    │   │   │   ├── rodada_1-teste_2-mpstat.csv
+    │   │   │   └── rodada_1-teste_2-mpstat.log
+    │   │   ├── rodada_2
+    │   │   │   ├── rodada_2-teste_2-iperf3_client.csv
+    │   │   │   ├── rodada_2-teste_2-iperf3_server.csv
+    │   │   │   ├── rodada_2-teste_2-mpstat.csv
+    │   │   │   └── rodada_2-teste_2-mpstat.log
+    │   │   ├── rodada_3
+    │   │   │   ├── rodada_3-teste_2-iperf3_client.csv
+    │   │   │   ├── rodada_3-teste_2-iperf3_server.csv
+    │   │   │   ├── rodada_3-teste_2-mpstat.csv
+    │   │   │   └── rodada_3-teste_2-mpstat.log
+    │   │   ├── rodada_4
+    │   │   │   ├── rodada_4-teste_2-iperf3_client.csv
+    │   │   │   ├── rodada_4-teste_2-iperf3_server.csv
+    │   │   │   ├── rodada_4-teste_2-mpstat.csv
+    │   │   │   └── rodada_4-teste_2-mpstat.log
+    │   │   ├── rodada_5
+    │   │   │   ├── rodada_5-teste_2-iperf3_client.csv
+    │   │   │   ├── rodada_5-teste_2-iperf3_server.csv
+    │   │   │   ├── rodada_5-teste_2-mpstat.csv
+    │   │   │   └── rodada_5-teste_2-mpstat.log
+    │   │   └── teste_2-experimento.log
+    │   └── teste_3
+    │       ├── rodada_1
+    │       │   ├── rodada_1-teste_3-iperf3_client.csv
+    │       │   ├── rodada_1-teste_3-iperf3_server.csv
+    │       │   ├── rodada_1-teste_3-mpstat.csv
+    │       │   └── rodada_1-teste_3-mpstat.log
+    │       ├── rodada_2
+    │       │   ├── rodada_2-teste_3-iperf3_client.csv
+    │       │   ├── rodada_2-teste_3-iperf3_server.csv
+    │       │   ├── rodada_2-teste_3-mpstat.csv
+    │       │   └── rodada_2-teste_3-mpstat.log
+    │       ├── rodada_3
+    │       │   ├── rodada_3-teste_3-iperf3_client.csv
+    │       │   ├── rodada_3-teste_3-iperf3_server.csv
+    │       │   ├── rodada_3-teste_3-mpstat.csv
+    │       │   └── rodada_3-teste_3-mpstat.log
+    │       ├── rodada_4
+    │       │   ├── rodada_4-teste_3-iperf3_client.csv
+    │       │   ├── rodada_4-teste_3-iperf3_server.csv
+    │       │   ├── rodada_4-teste_3-mpstat.csv
+    │       │   └── rodada_4-teste_3-mpstat.log
+    │       ├── rodada_5
+    │       │   ├── rodada_5-teste_3-iperf3_client.csv
+    │       │   ├── rodada_5-teste_3-iperf3_server.csv
+    │       │   ├── rodada_5-teste_3-mpstat.csv
+    │       │   └── rodada_5-teste_3-mpstat.log
+    ```
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+- `sumarizar-experimento`
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+    ```bash
+    ./sumarizar-experimento.py <diretório de resultados> <apelido_teste_1> <apelido_teste_2> ... <apelido_teste_n>
+    ```
 
-## License
-For open source projects, say how it is licensed.
+    Os argumentos suportados são listados abaixo:
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+    - [obrigatório] `<diretório de resultados>`: diretório onde estão os arquivos de resultados dos testes. É neste diretório que os gráficos gerados serão salvos, de acordo com o contexto de cada um. Por exemplo, gráficos que contenham informação sobre uma rodada de um teste, serão salvos em um diretório com o nome da rodada;
+
+    - [obrigatório] `<apelido_teste_1> <apelido_teste_2> ... <apelido_teste_n>`: apelidos dos testes que serão sumarizados. Estes apelidos são os mesmos informados no momento da execução do teste.
+
+    Exemplo de uso:
+
+    ```bash
+    ./sumarizar-experimento.py /home/vagrant/scripts/resultados "teste_1" "teste_2" "teste_3"
+    ```
+
+    A saída no terminal será algo como:
+
+    ```bash
+    Processando Teste 1 ...
+
+    Resumo para Teste 1:
+
+    Uso de CPU por núcleo:
+        CPU 0: 5.39%
+        CPU 1: 52.44%
+        CPU 2: 65.58%
+        CPU 3: 0.61%
+
+    Vazão:
+    Origem    Vazão (Mbps)   
+    Cliente   9891.86        
+    Servidor  9787.17        
+
+    Perda (%):
+    Média     0.10           
+
+    Processando Teste 2 ...
+
+    Resumo para Teste 2:
+
+    Uso de CPU por núcleo:
+        CPU 0: 5.41%
+        CPU 1: 52.29%
+        CPU 2: 64.91%
+        CPU 3: 0.45%
+
+    Vazão:
+    Origem    Vazão (Mbps)   
+    Cliente   9817.41        
+    Servidor  9747.93        
+
+    Perda (%):
+    Média     0.04           
+
+    Processando Teste 3 ...
+
+    Resumo para Teste 3:
+
+    Uso de CPU por núcleo:
+        CPU 0: 5.57%
+        CPU 1: 52.09%
+        CPU 2: 65.53%
+        CPU 3: 0.57%
+
+    Vazão:
+    Origem    Vazão (Mbps)   
+    Cliente   9890.62        
+    Servidor  9774.49        
+
+    Perda (%):
+    Média     0.10
+    ```
+
+    São gerados gráficos nos formatos **png** e **svg**. Abaixo estão alguns exemplos:
+
+    - Gráficos de barras:
+
+        - Gráficos de uso de CPU:
+
+            - Comparação geral dos testes:
+                ![uso_cpu](resultados-exemplo/uso_de_cpu_barra_comparativo.png)
+
+            - Comparação entre as rodadas rodada do teste 1:
+                ![uso_cpu_teste_1](resultados-exemplo/teste_1/teste_1-uso_de_cpu_barra_comparativo.png)
+
+            - Média das rodadas do teste 1:
+
+                ![uso_cpu_teste_1](resultados-exemplo/teste_1/teste_1-uso_de_cpu_barra.png)
+
+        - Gráficos de vazão:
+
+            - Comparação geral dos testes:
+                ![vazao](resultados-exemplo/vazao_barra_comparativo.png)
+
+            - Comparação entre as rodadas do teste 1:
+                ![vazao_teste_1](resultados-exemplo/teste_1/teste_1-vazao_barra_comparativo.png)
+
+            - Média das rodadas do teste 1:
+                ![vazao_teste_1](resultados-exemplo/teste_1/teste_1-vazao_barra.png)
+
+        - Gráficos de perda:
+
+            - Comparação geral dos testes:
+                ![perda](resultados-exemplo/perda_barra_comparativo.png)
+
+            - Comparação entre as rodadas do teste 1:
+                ![perda_teste_1](resultados-exemplo/teste_1/teste_1-perda_barra_comparativo.png)
+
+            - Média das rodadas do teste 1:
+                ![perda_teste_1](resultados-exemplo/teste_1/teste_1-perda_barra.png)
+
+    - Gráficos de série temporal:
+
+        - Gráficos de uso de CPU:
+
+            - Média das rodadas do teste 1:
+                ![uso_cpu_teste_1](resultados-exemplo/teste_1/teste_1-CPU_temporal.png)
+
+        - Gráficos de vazão:
+
+            - Média das rodadas do teste 1:
+                ![vazao_teste_1](resultados-exemplo/teste_1/teste_1-vazao_temporal.png)
+
+        - Gráficos de perda:
+
+            - Média das rodadas do teste 1:
+                ![perda_teste_1](resultados-exemplo/teste_1/teste_1-perda_temporal.png)
