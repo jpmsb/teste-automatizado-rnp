@@ -1,0 +1,29 @@
+#!/bin/bash
+
+LANG=C
+LC_ALL=C
+
+duration=$1
+log_dir=$2
+log_name=$3
+
+if [ -z "$duration" ]; then
+    duration=8
+else
+    duration=$(($duration - 2))
+fi
+
+if [ -z "$log_dir" ]; then
+    log_dir="."
+fi
+
+if [ -z "$log_name" ]; then
+    log_name="mpstat.log"
+fi
+
+while [ -z "$(pgrep -f "iperf3 -u")" ]; do
+    sleep 0.1
+done
+
+sleep 2
+script -q -c "sudo timeout -s SIGINT $duration mpstat -P ALL 1" $log_dir/$log_name > /dev/null 2>&1

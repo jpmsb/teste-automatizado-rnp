@@ -1,0 +1,180 @@
+#!/bin/bash
+
+# Arquivo: executa-experimento
+# TODO: implementar as rodadas, salvando cada rodada no diretório do experimento.
+#       Deve ser gerado um gráfico de cada rodada e um gráfico com a média das rodadas.
+#       Deve-se implementar o uso de argumentos de linha de comando
+#       Se possível, por uma contagem regressiva de quanto tempo falta para finalizar o teste
+
+ajustes(){
+    echo -e "\n${verde}Aplicando ajustes...${normal}\n"
+}
+
+verifica_dependencias(){
+    modulos=(pandas matplotlib.pyplot numpy sys json csv re)
+    modulos_false=()
+
+    # Verifica se as dependências do Python necessárias estão instaladas
+    for modulo in ${modulos[@]}; do
+        if ! python3 -c "import $modulo" &> /dev/null; then
+            modulos_false+=($modulo)
+        fi
+    done
+
+    if [ ${#modulos_false[@]} -gt 0 ]; then
+        echo -e "${vermelho}Erro: as dependências necessárias não estão instaladas:${normal}"
+        for modulo in ${modulos_false[@]}; do
+            echo -e "${vermelho}  - $modulo${normal}"
+        done
+        exit 1
+    fi
+}
+
+# Sobe o cenário contido no docker-compose.yml
+sobe_cenario(){
+    echo -e "\n${verde}Subindo o cenário...${normal}\n"
+
+    nome_interface=$(grep -oP '(?<=parent: )[^.]+' $arquivo_docker_compose)
+    interfaces="$(ip l | grep -oP '^\d+: \K[^:@]+' | grep $nome_interface)"
+
+    # Subindo a interface, bem como sua VLAN, se existir, e definindo o MTU para 9000
+    for interface in $interfaces; do
+        sudo ip link set $interface up
+        sudo ip link set $interface mtu 9000
+    done
+
+    docker compose -f $arquivo_docker_compose up -d
+}
+
+mata_processos(){
+    echo "Limpando processos antigos..."
+    docker compose -f $arquivo_docker_compose down
+}
+
+roda_teste(){
+    local banda=$1
+    local nucleo_servidor=$2
+    local nucleo_cliente=$3
+    local duracao=$4
+    local rodada_atual=$5
+
+    echo -e "\n##################################################"
+    echo -e "\n${verde}Executando a rodada $rodada_atual do teste de $duracao segundos com banda de ${banda}...${normal}\n"
+    mkdir -p $dir_este_script/resultados/$apelido/rodada_$rodada_atual
+
+    echo -e "${amarelo}Iniciando o servidor no núcleo ${nucleo_servidor}...${normal}"
+    docker exec $servidor iperf3 -s -J --one-off -A $nucleo_servidor | $dir_este_script/iperf_server_json_to_csv.py > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.csv 2>/dev/null &
+ 
+    sleep 1
+    echo -e "${amarelo}Preparando o mpstat...${normal}"
+    $dir_este_script/mpstat-trigger $duracao $dir_este_script/resultados/$apelido/rodada_$rodada_atual rodada_$rodada_atual-${apelido}-mpstat.log 2>/dev/null &
+
+    sleep 1
+    echo -e "${amarelo}Iniciando o cliente no núcleo ${nucleo_cliente}...${normal}"
+    docker exec $cliente iperf3 -u -J -w 1m -b $banda -c $servidor -A $nucleo_cliente -t $duracao | $dir_este_script/iperf_client_json_to_csv.py > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.csv
+
+    sleep 1
+    cat $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-mpstat.log | $dir_este_script/mpstat_to_csv.py > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-mpstat.csv
+    echo -e "\n##################################################\n"
+}
+
+LANG=C
+LC_ALL=C
+
+# Cores
+vermelho="\033[1;31m"
+verde="\033[1;32m"
+amarelo="\033[1;33m"
+ciano="\033[1;36m"
+rosa="\033[1;95m"
+normal="\033[0m"
+
+# Nome dos contêineres
+cliente="monipe-src"
+servidor="monipe-dst"
+
+# Processar os argumentos
+while [[ $# -gt 0 ]]; do
+    argumento=$1
+    case $argumento in
+        -c|--nucleo-cliente)
+            nucleo_cliente=$2
+            shift
+            shift
+            ;;
+        -s|--nucleo-servidor)
+            nucleo_servidor=$2
+            shift
+            shift
+            ;;
+        -d|--docker-compose)
+            arquivo_docker_compose=$2
+            shift
+            shift
+            ;;
+        -a|--apelido)
+            apelido=$2
+            shift
+            shift
+            ;;
+        -t|--duracao)
+            duracao=$2
+            shift
+            shift
+            ;;
+        -r|--rodadas)
+            rodadas=$2
+            shift
+            shift
+            ;;
+        -b|--banda-maxima)
+            banda_maxima=$2
+            shift
+            shift
+            ;;
+        *)
+            echo "Argumento inválido: $1"
+            exit 1
+            ;;
+    esac
+done
+
+if [ -z "$nucleo_cliente" ] || [ -z "$nucleo_servidor" ] || [ -z "$arquivo_docker_compose" ] || [ -z "$apelido" ]; then
+    echo "Uso: $0 <nucleo_cliente> <nucleo_servidor> <arquivo_docker_compose> <apelido> [duracao]"
+    exit 1
+fi
+
+if [ -z "$duracao" ]; then
+    duracao=10
+fi
+
+if [ -z "$rodadas" ]; then
+    rodadas=1
+fi
+
+if [ -z "$banda_maxima" ]; then
+    banda_maxima="10G"
+fi
+
+dir_docker_compose=$(dirname $(realpath $arquivo_docker_compose))
+dir_este_script=$(dirname $(realpath $0))
+algoritmo=('udp')
+
+if [ ! -d resultados ]; then
+    mkdir resultados
+fi
+
+rm -rf $dir_este_script/resultados/$apelido
+mkdir -p $dir_este_script/resultados/$apelido
+
+verifica_dependencias
+mata_processos
+sobe_cenario
+
+for rodada_atual in $(seq 1 $rodadas); do
+    roda_teste $banda_maxima $nucleo_servidor $nucleo_cliente $duracao $rodada_atual
+done
+
+mata_processos
+
+echo -e "\nFim: $(date '+%Y-%m-%d %H:%M:%S')" > $dir_este_script/resultados/$apelido/$apelido-experimento.log
