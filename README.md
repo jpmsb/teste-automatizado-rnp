@@ -34,6 +34,20 @@ Dessa forma:
 
 ## Uso
 
+Primeiramente, clone o repositório:
+
+```bash
+git clone https://git.rnp.br/gci/dev/melhorias-monipe/teste-automatizado
+```
+
+Em seguida, entre no diretório `scripts`:
+
+```bash
+cd teste-automatizado/scripts
+```
+
+Abaixo, é demonstrado como utilizar as rotinas:
+
 - `executa-experimento`
 
     ```bash
