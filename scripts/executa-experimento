@@ -140,7 +140,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [ -z "$nucleo_cliente" ] || [ -z "$nucleo_servidor" ] || [ -z "$arquivo_docker_compose" ] || [ -z "$apelido" ]; then
-    echo "Uso: $0 <nucleo_cliente> <nucleo_servidor> <arquivo_docker_compose> <apelido> [duracao]"
+    echo "Uso: $0 -c <núcleo do cliente> -s <núcleo do servidor> -d <arquivo docker-compose> -a <apelido> [-t <duração do teste> -r <número de rodadas> -b <banda máxima>]"
     exit 1
 fi
 
