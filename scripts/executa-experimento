@@ -1,10 +1,6 @@
 #!/bin/bash
 
 # Arquivo: executa-experimento
-# TODO: implementar as rodadas, salvando cada rodada no diretório do experimento.
-#       Deve ser gerado um gráfico de cada rodada e um gráfico com a média das rodadas.
-#       Deve-se implementar o uso de argumentos de linha de comando
-#       Se possível, por uma contagem regressiva de quanto tempo falta para finalizar o teste
 
 ajustes(){
     echo -e "\n${verde}Aplicando ajustes...${normal}\n"
