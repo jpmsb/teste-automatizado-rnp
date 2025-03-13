@@ -392,7 +392,42 @@ def plot_cpu_comparativo_por_rodada(test_dir, test_name):
     plt.savefig(svg_path)
     plt.close()
 
+# Gráfico comparativo por Teste (agrupado por teste)
 def plot_cpu_comparativo_por_teste(resultados_dir, tests, cpu_aggregate):
+    if not cpu_aggregate:
+        return
+    test_keys = sorted([test for test in tests if test in cpu_aggregate])
+    cores = list(next(iter(cpu_aggregate.values())).keys())
+    n_tests = len(test_keys)
+    n_cores = len(cores)
+    x = np.arange(n_tests)  # cada grupo corresponde a um teste
+    width = 0.8 / n_cores    # largura de cada barra dentro do grupo
+
+    plt.figure(figsize=(10,6))
+    for j, core in enumerate(cores):
+        values = []
+        for test in test_keys:
+            cpu_dict = cpu_aggregate[test]
+            values.append(cpu_dict.get(core, 0))
+        offset = (j - (n_cores - 1)/2) * width
+        bars = plt.bar(x + offset, values, width, label=format_label(core))
+        for i, bar in enumerate(bars):
+            plt.text(bar.get_x() + bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
+                     ha='center', va='bottom')
+    plt.ylabel("Uso médio de CPU (%)")
+    plt.xlabel("Teste")
+    plt.title("Uso de CPU Comparativo por Teste (Agrupado por Teste)")
+    plt.xticks(x, [format_label(test) for test in test_keys])
+    plt.legend(title="Núcleo")
+    plt.ylim(bottom=0)
+    png_path = os.path.join(resultados_dir, "uso_de_cpu_por_teste_barra_comparativo.png")
+    svg_path = os.path.join(resultados_dir, "uso_de_cpu_por_teste_barra_comparativo.svg")
+    plt.savefig(png_path)
+    plt.savefig(svg_path)
+    plt.close()
+
+# Gráfico comparativo por Núcleo (original: eixo x = núcleos)
+def plot_cpu_comparativo_por_nucleo(resultados_dir, tests, cpu_aggregate):
     if not cpu_aggregate:
         return
     first = next(iter(cpu_aggregate.values()))
@@ -404,19 +439,19 @@ def plot_cpu_comparativo_por_teste(resultados_dir, tests, cpu_aggregate):
         if test not in cpu_aggregate:
             continue
         cpu_dict = cpu_aggregate[test]
-        values = [cpu_dict[core] for core in cores]
+        values = [cpu_dict.get(core, 0) for core in cores]
         bars = plt.bar(x + i*width, values, width, label=format_label(test))
         for bar in bars:
             plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
                      ha='center', va='bottom')
     plt.ylabel("Uso médio de CPU (%)")
     plt.xlabel("Núcleo")
-    plt.title("Uso de CPU Comparativo por Teste")
-    plt.xticks(x + width*(len(tests)-1)/2, [format_label(c) for c in cores])
+    plt.title("Uso de CPU Comparativo por Núcleo")
+    plt.xticks(x + width*(len(tests)-1)/2, [format_label(core) for core in cores])
     plt.legend()
     plt.ylim(bottom=0)
-    png_path = os.path.join(resultados_dir, "uso_de_cpu_barra_comparativo.png")
-    svg_path = os.path.join(resultados_dir, "uso_de_cpu_barra_comparativo.svg")
+    png_path = os.path.join(resultados_dir, "uso_de_cpu_por_nucleo_barra_comparativo.png")
+    svg_path = os.path.join(resultados_dir, "uso_de_cpu_por_nucleo_barra_comparativo.svg")
     plt.savefig(png_path)
     plt.savefig(svg_path)
     plt.close()
@@ -548,6 +583,43 @@ def plot_vazao_comparativo_por_teste(resultados_dir, tests, vazao_aggregate):
     plt.close()
 
 ##############################
+# NOVA FUNÇÃO – CPU USO POR TESTE COMPARATIVO (INDIVIDUAL)
+##############################
+def plot_cpu_usage_por_teste_comparativo_for_test(test_dir, test_name):
+    rounds = get_round_dirs(test_dir)
+    overall_cpu = {}
+    count = 0
+    for rodada in rounds:
+        rodada_path = os.path.join(test_dir, rodada)
+        mpstat_file = os.path.join(rodada_path, f"{rodada}-{test_name}-mpstat.csv")
+        if not os.path.exists(mpstat_file):
+            print(f"Aviso: {mpstat_file} não encontrado.")
+            continue
+        df = pd.read_csv(mpstat_file)
+        cpu_usage = {col: df[col].mean() for col in df.columns}
+        for core, usage in cpu_usage.items():
+            overall_cpu[core] = overall_cpu.get(core, 0) + usage
+        count += 1
+    if count > 0:
+        overall_cpu_avg = {core: val/count for core, val in overall_cpu.items()}
+        cores = list(overall_cpu_avg.keys())
+        valores = [overall_cpu_avg[c] for c in cores]
+        plt.figure(figsize=(8,6))
+        bars = plt.bar(cores, valores)
+        for bar in bars:
+            plt.text(bar.get_x() + bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
+                     ha='center', va='bottom')
+        plt.ylabel("Uso médio de CPU (%)")
+        plt.xlabel("Núcleo")
+        plt.title(f"{format_label(test_name)} - Uso de CPU Comparativo (Média das Rodadas)")
+        plt.ylim(bottom=0)
+        png_path = os.path.join(test_dir, f"{test_name}-uso_de_cpu_por_teste_barra_comparativo.png")
+        svg_path = os.path.join(test_dir, f"{test_name}-uso_de_cpu_por_teste_barra_comparativo.svg")
+        plt.savefig(png_path)
+        plt.savefig(svg_path)
+        plt.close()
+
+##############################
 # FUNÇÕES AGREGADAS – SÉRIES TEMPORAIS (usadas apenas para PERDA)
 ##############################
 def aggregate_perda_temporal_for_test(test_dir, test_name):
@@ -620,16 +692,16 @@ def main():
     if len(sys.argv) < 3:
         print("Uso: ./sumariza-experimento <diretório de resultados> <teste_1> <teste_2> ...")
         sys.exit(1)
-    
+
     resultados_dir = sys.argv[1]
     tests = sys.argv[2:]
-    
+
     # Dicionários para os comparativos entre testes (barras e séries temporais para PERDA)
     cpu_aggregate = {}
     perda_aggregate = {}
     vazao_aggregate = {}
     perda_temporal_agg = {}
-    
+
     for test in tests:
         test_dir = os.path.join(resultados_dir, test)
         if not os.path.isdir(test_dir):
@@ -644,27 +716,31 @@ def main():
         plot_cpu_temporal_for_test(test_dir, test)
         plot_vazao_temporal_for_test(test_dir, test)
         plot_perda_temporal_for_test(test_dir, test)
-        
+
         # Gráficos comparativos por rodada (barras e séries temporais) no diretório de cada teste
         plot_cpu_comparativo_por_rodada(test_dir, test)
         plot_perda_comparativo_por_rodada(test_dir, test)
         plot_vazao_comparativo_por_rodada(test_dir, test)
-        
+
+        # Gráfico comparativo individual por teste (agrupado por núcleos - para cada teste)
+        plot_cpu_usage_por_teste_comparativo_for_test(test_dir, test)
+
         print_summarization(test, cpu_overall, vazao_cli, vazao_srv, perda_overall)
-        
+
         # Armazena dados para os comparativos entre testes (barras)
         cpu_aggregate[test] = cpu_overall
         perda_aggregate[test] = perda_overall
         vazao_aggregate[test] = (vazao_cli, vazao_srv)
-        
+
         # Agrega as séries temporais de perda para os comparativos entre testes
         perda_temporal_agg[test] = aggregate_perda_temporal_for_test(test_dir, test)
-    
+
     # Gera gráficos comparativos entre testes (barras)
     plot_cpu_comparativo_por_teste(resultados_dir, tests, cpu_aggregate)
+    plot_cpu_comparativo_por_nucleo(resultados_dir, tests, cpu_aggregate)
     plot_perda_comparativo_por_teste(resultados_dir, tests, perda_aggregate)
     plot_vazao_comparativo_por_teste(resultados_dir, tests, vazao_aggregate)
-    
+
     # Gera o gráfico comparativo de série temporal apenas para PERDA (no diretório raiz de resultados)
     agg_perda_temp = aggregate_all_perda_temporal(resultados_dir, tests)
     plot_perda_temporal_comparativo_por_teste(resultados_dir, tests, agg_perda_temp)
