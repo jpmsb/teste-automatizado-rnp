@@ -16,6 +16,18 @@ def get_round_dirs(test_dir):
     rounds = [d for d in os.listdir(test_dir) if d.startswith("rodada_") and os.path.isdir(os.path.join(test_dir, d))]
     return sorted(rounds)
 
+def format_throughput(value):
+    """
+    Recebe um valor em Mbps e retorna uma string formatada:
+      - se >= 1000, converte para Gbps com 2 casas decimais e adiciona " G"
+      - caso contrário, mantém em Mbps com 2 casas decimais e adiciona " M"
+    Ex.: 9908.5 -> "9.91 G"
+    """
+    if value >= 1000:
+        return f"{value/1000:.2f} G"
+    else:
+        return f"{value:.2f} M"
+
 ##############################
 # FUNÇÕES ORIGINAIS DE PLOTAGEM (por rodada e por teste)
 ##############################
@@ -99,7 +111,9 @@ def plot_vazao_barra_for_test(test_dir, test_name):
         plt.figure(figsize=(8,6))
         bars = plt.bar(x, valores, width)
         for bar in bars:
-            plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
+            # Usa a função auxiliar para formatar o valor de vazão
+            plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(),
+                     format_throughput(bar.get_height()),
                      ha='center', va='bottom')
         plt.ylabel("Vazão Média (Mbps)")
         plt.xlabel("Origem")
@@ -126,7 +140,8 @@ def plot_vazao_barra_for_test(test_dir, test_name):
         plt.figure(figsize=(8,6))
         bars = plt.bar(x, valores, width)
         for bar in bars:
-            plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
+            plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(),
+                     format_throughput(bar.get_height()),
                      ha='center', va='bottom')
         plt.ylabel("Vazão Média (Mbps)")
         plt.xlabel("Origem")
@@ -158,7 +173,7 @@ def plot_perda_barra_for_test(test_dir, test_name):
         
         plt.figure(figsize=(6,5))
         bar = plt.bar(["Perda (%)"], [perda])
-        plt.text(0, perda, f"{perda:.2f}", ha='center', va='bottom')
+        plt.text(0, perda, f"{perda:.4f}", ha='center', va='bottom')
         plt.ylabel("Perda (%)")
         plt.title(f"Perda - {format_label(rodada)} - {format_label(test_name)}")
         plt.ylim(bottom=0)
@@ -175,7 +190,7 @@ def plot_perda_barra_for_test(test_dir, test_name):
         media_perda = soma_perda / count
         plt.figure(figsize=(6,5))
         plt.bar(["Perda (%)"], [media_perda])
-        plt.text(0, media_perda, f"{media_perda:.2f}", ha='center', va='bottom')
+        plt.text(0, media_perda, f"{media_perda:.4f}", ha='center', va='bottom')
         plt.ylabel("Perda (%)")
         plt.title(f"{format_label(test_name)} - Perda (Média das Rodadas)")
         plt.ylim(bottom=0)
@@ -242,6 +257,11 @@ def plot_cpu_temporal_for_test(test_dir, test_name):
         plt.close()
 
 def plot_vazao_temporal_for_test(test_dir, test_name):
+    """
+    Cria um gráfico temporal agregado de vazão para o teste.
+    O gráfico mostra a vazão (Mbps) ao longo do tempo, agregando os dados de todas as rodadas.
+    O arquivo será salvo com o nome: <test_name>-vazao_temporal.png e <test_name>-vazao_temporal.svg
+    """
     rounds = get_round_dirs(test_dir)
     dfs_client = []
     dfs_server = []
@@ -258,54 +278,45 @@ def plot_vazao_temporal_for_test(test_dir, test_name):
         df_server['tempo'] = range(len(df_server))
         dfs_client.append(df_client)
         dfs_server.append(df_server)
-        plt.figure(figsize=(8,6))
-        if 'bits_por_segundo' in df_client.columns:
-            plt.plot(df_client['tempo'], df_client['bits_por_segundo']/1e6, label="Cliente")
-        if 'taxa_de_bits_por_segundo' in df_server.columns:
-            plt.plot(df_server['tempo'], df_server['taxa_de_bits_por_segundo']/1e6, label="Servidor")
-        plt.ylabel("Vazão (Mbps)")
-        plt.xlabel("Tempo (s)")
-        plt.title(f"Vazão Temporal - {format_label(rodada)} - {format_label(test_name)}")
-        plt.legend()
-        plt.ylim(bottom=0)
-        png_path = os.path.join(rodada_path, f"{rodada}-{test_name}-vazao_temporal.png")
-        svg_path = os.path.join(rodada_path, f"{rodada}-{test_name}-vazao_temporal.svg")
-        plt.savefig(png_path)
-        plt.savefig(svg_path)
-        plt.close()
-    if dfs_client and dfs_server:
-        common_length = min(min(len(df) for df in dfs_client), min(len(df) for df in dfs_server))
-        df_med_client = dfs_client[0].iloc[:common_length].copy()
-        for col in df_med_client.columns:
-            if col == 'tempo':
-                continue
-            values_list = [pd.to_numeric(df[col].iloc[:common_length], errors='coerce').fillna(0).values.astype(float)
-                           for df in dfs_client if col in df.columns]
-            if values_list:
-                df_med_client[col] = np.mean(values_list, axis=0)
-        df_med_server = dfs_server[0].iloc[:common_length].copy()
-        for col in df_med_server.columns:
-            if col == 'tempo':
-                continue
-            values_list = [pd.to_numeric(df[col].iloc[:common_length], errors='coerce').fillna(0).values.astype(float)
-                           for df in dfs_server if col in df.columns]
-            if values_list:
-                df_med_server[col] = np.mean(values_list, axis=0)
-        plt.figure(figsize=(8,6))
-        if 'bits_por_segundo' in df_med_client.columns:
-            plt.plot(df_med_client['tempo'], df_med_client['bits_por_segundo']/1e6, label="Cliente")
-        if 'taxa_de_bits_por_segundo' in df_med_server.columns:
-            plt.plot(df_med_server['tempo'], df_med_server['taxa_de_bits_por_segundo']/1e6, label="Servidor")
-        plt.ylabel("Vazão (Mbps)")
-        plt.xlabel("Tempo (s)")
-        plt.title(f"{format_label(test_name)} - Vazão Temporal (Média das Rodadas)")
-        plt.legend()
-        plt.ylim(bottom=0)
-        png_path = os.path.join(test_dir, f"{test_name}-vazao_temporal.png")
-        svg_path = os.path.join(test_dir, f"{test_name}-vazao_temporal.svg")
-        plt.savefig(png_path)
-        plt.savefig(svg_path)
-        plt.close()
+    if not (dfs_client and dfs_server):
+        print(f"Aviso: Não foi possível criar o gráfico temporal para {test_name} por falta de dados.")
+        return
+    common_length = min(min(len(df) for df in dfs_client), min(len(df) for df in dfs_server))
+    df_med_client = dfs_client[0].iloc[:common_length].copy()
+    for col in df_med_client.columns:
+        if col == 'tempo':
+            continue
+        values_list = [
+            pd.to_numeric(df[col].iloc[:common_length], errors='coerce').fillna(0).values.astype(float)
+            for df in dfs_client if col in df.columns
+        ]
+        if values_list:
+            df_med_client[col] = np.mean(values_list, axis=0)
+    df_med_server = dfs_server[0].iloc[:common_length].copy()
+    for col in df_med_server.columns:
+        if col == 'tempo':
+            continue
+        values_list = [
+            pd.to_numeric(df[col].iloc[:common_length], errors='coerce').fillna(0).values.astype(float)
+            for df in dfs_server if col in df.columns
+        ]
+        if values_list:
+            df_med_server[col] = np.mean(values_list, axis=0)
+    plt.figure(figsize=(8,6))
+    if 'bits_por_segundo' in df_med_client.columns:
+        plt.plot(df_med_client['tempo'], df_med_client['bits_por_segundo']/1e6, label="Cliente")
+    if 'taxa_de_bits_por_segundo' in df_med_server.columns:
+        plt.plot(df_med_server['tempo'], df_med_server['taxa_de_bits_por_segundo']/1e6, label="Servidor")
+    plt.ylabel("Vazão (Mbps)")
+    plt.xlabel("Tempo (s)")
+    plt.title(f"{format_label(test_name)} - Vazão Temporal")
+    plt.legend()
+    plt.ylim(bottom=0)
+    png_path = os.path.join(test_dir, f"{test_name}-vazao_temporal.png")
+    svg_path = os.path.join(test_dir, f"{test_name}-vazao_temporal.svg")
+    plt.savefig(png_path)
+    plt.savefig(svg_path)
+    plt.close()
 
 def plot_perda_temporal_for_test(test_dir, test_name):
     rounds = get_round_dirs(test_dir)
@@ -392,7 +403,6 @@ def plot_cpu_comparativo_por_rodada(test_dir, test_name):
     plt.savefig(svg_path)
     plt.close()
 
-# Gráfico comparativo por Teste (agrupado por teste)
 def plot_cpu_comparativo_por_teste(resultados_dir, tests, cpu_aggregate):
     if not cpu_aggregate:
         return
@@ -426,7 +436,6 @@ def plot_cpu_comparativo_por_teste(resultados_dir, tests, cpu_aggregate):
     plt.savefig(svg_path)
     plt.close()
 
-# Gráfico comparativo por Núcleo (original: eixo x = núcleos)
 def plot_cpu_comparativo_por_nucleo(resultados_dir, tests, cpu_aggregate):
     if not cpu_aggregate:
         return
@@ -476,7 +485,7 @@ def plot_perda_comparativo_por_rodada(test_dir, test_name):
     plt.figure(figsize=(8,6))
     bars = plt.bar(x, values, width=0.5)
     for bar in bars:
-        plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
+        plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), f"{bar.get_height():.4f}",
                  ha='center', va='bottom')
     plt.ylabel("Perda (%)")
     plt.xlabel("Rodada")
@@ -496,7 +505,7 @@ def plot_perda_comparativo_por_teste(resultados_dir, tests, perda_aggregate):
     plt.figure(figsize=(8,6))
     bars = plt.bar(x, values, width=0.5)
     for bar in bars:
-        plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
+        plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), f"{bar.get_height():.4f}",
                  ha='center', va='bottom')
     plt.ylabel("Perda (%)")
     plt.xlabel("Teste")
@@ -538,10 +547,10 @@ def plot_vazao_comparativo_por_rodada(test_dir, test_name):
     bars1 = plt.bar(x - width/2, client_values, width, label="Cliente")
     bars2 = plt.bar(x + width/2, server_values, width, label="Servidor")
     for bar in bars1:
-        plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
+        plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), format_throughput(bar.get_height()),
                  ha='center', va='bottom')
     for bar in bars2:
-        plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
+        plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), format_throughput(bar.get_height()),
                  ha='center', va='bottom')
     plt.ylabel("Vazão Média (Mbps)")
     plt.xlabel("Rodada")
@@ -565,10 +574,10 @@ def plot_vazao_comparativo_por_teste(resultados_dir, tests, vazao_aggregate):
     bars1 = plt.bar(x - width/2, client_values, width, label="Cliente")
     bars2 = plt.bar(x + width/2, server_values, width, label="Servidor")
     for bar in bars1:
-        plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
+        plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), format_throughput(bar.get_height()),
                  ha='center', va='bottom')
     for bar in bars2:
-        plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
+        plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), format_throughput(bar.get_height()),
                  ha='center', va='bottom')
     plt.ylabel("Vazão Média (Mbps)")
     plt.xlabel("Teste")
@@ -683,7 +692,7 @@ def print_summarization(test_name, cpu_usage, vazao_cliente, vazao_servidor, per
     print(f"{'Servidor':<10}{vazao_servidor:<15.2f}")
     
     print("\nPerda (%):")
-    print(f"{'Média':<10}{perda:<15.2f}")
+    print(f"{'Média':<10}{perda:<15.4f}")
 
 ##############################
 # FUNÇÃO MAIN
