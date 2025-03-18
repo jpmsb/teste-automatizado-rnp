@@ -47,6 +47,21 @@ mata_processos(){
     docker compose -f $arquivo_docker_compose down
 }
 
+contagem_regressiva(){
+    valor_inicial=$1
+    texto="$2"
+
+    for i in $(seq $valor_inicial -1 1); do
+        printf "\033[K"
+        printf "$texto ${ciano}[Tempo restante: $i]${normal}\r"
+        sleep 1
+    done
+
+    printf "\033[K"
+    printf "$texto"
+    echo
+}
+
 roda_teste(){
     local banda=$1
     local nucleo_servidor=$2
@@ -66,8 +81,10 @@ roda_teste(){
     $dir_este_script/mpstat-trigger $duracao $dir_este_script/resultados/$apelido/rodada_$rodada_atual rodada_$rodada_atual-${apelido}-mpstat.log 2>/dev/null &
 
     sleep 1
-    echo -e "${amarelo}Iniciando o cliente no núcleo ${nucleo_cliente}...${normal}"
-    docker exec $cliente iperf3 -u -J -w 1m -b $banda -c $servidor -A $nucleo_cliente -t $duracao | $dir_este_script/iperf_client_json_to_csv.py > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.csv
+    docker exec $cliente iperf3 -u -J -w 1m -b $banda -c $servidor -A $nucleo_cliente -t $duracao | $dir_este_script/iperf_client_json_to_csv.py > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.csv 2>/dev/null &
+
+    contagem_regressiva $duracao "${amarelo}Iniciando o cliente no núcleo ${nucleo_cliente}...${normal}"
+    wait $(jobs -p)
 
     sleep 1
     cat $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-mpstat.log | $dir_este_script/mpstat_to_csv.py > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-mpstat.csv
