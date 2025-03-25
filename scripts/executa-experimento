@@ -7,10 +7,28 @@ ajustes(){
 }
 
 verifica_dependencias(){
+    # Verifica se as dependências do sistema necessárias estão instaladas
+    dependencias=(docker docker-compose numactl python3)
+    dependencia_faltante=()
+
+    for dependencia in ${dependencias[@]}; do
+        if ! command -v $dependencia &> /dev/null; then
+            dependencia_faltante+=($dependencia)
+        fi
+    done
+
+    if [ ${#dependencia_faltante[@]} -gt 0 ]; then
+        echo -e "${vermelho}Erro: as dependências necessárias não estão instaladas:${normal}"
+        for dependencia in ${dependencia_faltante[@]}; do
+            echo -e "${vermelho}  - $dependencia${normal}"
+        done
+        exit 1
+    fi
+
+    # Verifica se as dependências do Python necessárias estão instaladas
     modulos=(pandas matplotlib.pyplot numpy sys json csv re)
     modulos_false=()
 
-    # Verifica se as dependências do Python necessárias estão instaladas
     for modulo in ${modulos[@]}; do
         if ! python3 -c "import $modulo" &> /dev/null; then
             modulos_false+=($modulo)
