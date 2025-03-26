@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# Verifica se a quantidade de argumentos é a esperada
+if [ "$#" -ne 3 ]; then
+    echo "Uso: $0 <dir de resultados> <nome antigo> <novo nome>"
+    exit 1
+fi
+
+# Atribui os parâmetros a variáveis
+dirResultados="$1"
+nomeAntigo="$2"
+novoNome="$3"
+
+# Procura recursivamente por todos os arquivos dentro do diretório informado
+find "$dirResultados" -type f | while IFS= read -r file; do
+    # Extrai apenas o nome do arquivo
+    base=$(basename "$file")
+    # Verifica se o nome do arquivo contém o nome antigo
+    if [[ "$base" == *"$nomeAntigo"* ]]; then
+        # Substitui todas as ocorrências de <nome antigo> pelo <novo nome>
+        novoBase="${base//$nomeAntigo/$novoNome}"
+        # Obtém o diretório onde o arquivo está localizado
+        dir=$(dirname "$file")
+        echo "Renomeando: $file -> $dir/$novoBase"
+        # Realiza o renomeio
+        mv "$file" "$dir/$novoBase"
+    fi
+done
+
+## Renomeia o diretório que contém o teste
+mv "$dirResultados/$nomeAntigo" "$dirResultados/$novoNome"
