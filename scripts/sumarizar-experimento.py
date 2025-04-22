@@ -31,11 +31,11 @@ def format_throughput(value):
         return f"{value:.2f} M"
 
 ##############################
-# FUNÇÕES DE PLOTAGEM (mantidas as originais)
+# FUNÇÕES DE PLOTAGEM (com error bars)
 ##############################
 def plot_cpu_usage_for_test(test_dir, test_name):
     rounds = get_round_dirs(test_dir)
-    overall_cpu = {}
+    overall_cpu_values = {}  # acumula os valores de cada núcleo em cada rodada
     count = 0
     for rodada in rounds:
         rodada_path = os.path.join(test_dir, rodada)
@@ -44,11 +44,20 @@ def plot_cpu_usage_for_test(test_dir, test_name):
             print(f"Aviso: {mpstat_file} não encontrado.")
             continue
         df = pd.read_csv(mpstat_file)
-        cpu_usage = {col: df[col].mean() for col in df.columns}
-        cores = list(cpu_usage.keys())
-        valores = [cpu_usage[c] for c in cores]
+        cpu_usage_mean = {}
+        cpu_usage_err = {}
+        n = len(df)
+        for col in df.columns:
+            m = df[col].mean()
+            std = df[col].std()
+            err = 1.96 * std / np.sqrt(n)
+            cpu_usage_mean[col] = m
+            cpu_usage_err[col] = err
+        cores = list(cpu_usage_mean.keys())
+        valores = [cpu_usage_mean[c] for c in cores]
+        err_values = [cpu_usage_err[c] for c in cores]
         plt.figure(figsize=(8,6))
-        bars = plt.bar(cores, valores)
+        bars = plt.bar(cores, valores, yerr=err_values, capsize=5)
         for bar in bars:
             plt.text(bar.get_x() + bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
                      ha='center', va='bottom')
@@ -61,16 +70,22 @@ def plot_cpu_usage_for_test(test_dir, test_name):
         plt.savefig(png_path)
         plt.savefig(svg_path)
         plt.close()
-        for core, usage in cpu_usage.items():
-            overall_cpu[core] = overall_cpu.get(core, 0) + usage
+        # Acumula os valores por núcleo
+        for core, value in cpu_usage_mean.items():
+            overall_cpu_values.setdefault(core, []).append(value)
         count += 1
 
     if count > 0:
-        overall_cpu_avg = {core: val/count for core, val in overall_cpu.items()}
-        cores = list(overall_cpu_avg.keys())
-        valores = [overall_cpu_avg[c] for c in cores]
+        overall_cpu = {}
+        overall_cpu_err = {}
+        for core, values in overall_cpu_values.items():
+            overall_cpu[core] = np.mean(values)
+            overall_cpu_err[core] = 1.96 * np.std(values, ddof=1) / np.sqrt(len(values))
+        cores = list(overall_cpu.keys())
+        valores = [overall_cpu[c] for c in cores]
+        err_values = [overall_cpu_err[c] for c in cores]
         plt.figure(figsize=(8,6))
-        bars = plt.bar(cores, valores)
+        bars = plt.bar(cores, valores, yerr=err_values, capsize=5)
         for bar in bars:
             plt.text(bar.get_x() + bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
                      ha='center', va='bottom')
@@ -83,14 +98,15 @@ def plot_cpu_usage_for_test(test_dir, test_name):
         plt.savefig(png_path)
         plt.savefig(svg_path)
         plt.close()
-        return overall_cpu_avg
+        overall_cpu_agg = {core: (overall_cpu[core], overall_cpu_err[core]) for core in overall_cpu}
+        return overall_cpu_agg
     else:
         return {}
 
 def plot_vazao_barra_for_test(test_dir, test_name):
     rounds = get_round_dirs(test_dir)
-    soma_cliente = 0
-    soma_servidor = 0
+    cliente_list = []
+    servidor_list = []
     count = 0
     for rodada in rounds:
         rodada_path = os.path.join(test_dir, rodada)
@@ -103,15 +119,28 @@ def plot_vazao_barra_for_test(test_dir, test_name):
         df_server = pd.read_csv(server_file)
         col_client = 'bits_por_segundo' if 'bits_por_segundo' in df_client.columns else None
         col_server = 'taxa_de_bits_por_segundo' if 'taxa_de_bits_por_segundo' in df_server.columns else None
-        vazao_cliente = df_client[col_client].mean() / 1e6 if col_client else 0
-        vazao_servidor = df_server[col_server].mean() / 1e6 if col_server else 0
-        
+        if col_client:
+            n_client = len(df_client)
+            mean_client = df_client[col_client].mean() / 1e6
+            err_client = 1.96 * df_client[col_client].std() / np.sqrt(n_client) / 1e6
+        else:
+            mean_client = 0
+            err_client = 0
+        if col_server:
+            n_server = len(df_server)
+            mean_server = df_server[col_server].mean() / 1e6
+            err_server = 1.96 * df_server[col_server].std() / np.sqrt(n_server) / 1e6
+        else:
+            mean_server = 0
+            err_server = 0
+
         labels = ['Cliente', 'Servidor']
-        valores = [vazao_cliente, vazao_servidor]
+        valores = [mean_client, mean_server]
+        err_values = [err_client, err_server]
         x = np.arange(len(labels))
         width = 0.3
         plt.figure(figsize=(8,6))
-        bars = plt.bar(x, valores, width)
+        bars = plt.bar(x, valores, width, yerr=err_values, capsize=5)
         for bar in bars:
             plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(),
                      format_throughput(bar.get_height()),
@@ -127,19 +156,25 @@ def plot_vazao_barra_for_test(test_dir, test_name):
         plt.savefig(svg_path)
         plt.close()
         
-        soma_cliente += vazao_cliente
-        soma_servidor += vazao_servidor
+        cliente_list.append((mean_client, err_client))
+        servidor_list.append((mean_server, err_server))
         count += 1
 
     if count > 0:
-        media_cliente = soma_cliente / count
-        media_servidor = soma_servidor / count
+        cliente_means = [val for val, err in cliente_list]
+        servidor_means = [val for val, err in servidor_list]
+        media_cliente = np.mean(cliente_means)
+        media_servidor = np.mean(servidor_means)
+        err_cliente = 1.96 * np.std(cliente_means, ddof=1) / np.sqrt(len(cliente_means))
+        err_servidor = 1.96 * np.std(servidor_means, ddof=1) / np.sqrt(len(servidor_means))
+        
         labels = ['Cliente', 'Servidor']
         valores = [media_cliente, media_servidor]
+        err_values = [err_cliente, err_servidor]
         x = np.arange(len(labels))
         width = 0.3
         plt.figure(figsize=(8,6))
-        bars = plt.bar(x, valores, width)
+        bars = plt.bar(x, valores, width, yerr=err_values, capsize=5)
         for bar in bars:
             plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(),
                      format_throughput(bar.get_height()),
@@ -154,13 +189,13 @@ def plot_vazao_barra_for_test(test_dir, test_name):
         plt.savefig(png_path)
         plt.savefig(svg_path)
         plt.close()
-        return media_cliente, media_servidor
+        return ( (media_cliente, err_cliente), (media_servidor, err_servidor) )
     else:
-        return 0, 0
+        return ( (0,0), (0,0) )
 
 def plot_perda_barra_for_test(test_dir, test_name):
     rounds = get_round_dirs(test_dir)
-    soma_perda = 0
+    perda_list = []
     count = 0
     for rodada in rounds:
         rodada_path = os.path.join(test_dir, rodada)
@@ -168,13 +203,18 @@ def plot_perda_barra_for_test(test_dir, test_name):
         if not os.path.exists(client_file):
             print(f"Aviso: {client_file} não encontrado.")
             continue
-        df_client = pd.read_csv(client_file)
-        col = '%_pacotes_perdidos' if '%_pacotes_perdidos' in df_client.columns else None
-        perda = df_client[col].mean() if col else 0
-        
+        df = pd.read_csv(client_file)
+        col = '%_pacotes_perdidos' if '%_pacotes_perdidos' in df.columns else None
+        if col:
+            n = len(df)
+            m = df[col].mean()
+            err = 1.96 * df[col].std() / np.sqrt(n)
+        else:
+            m = 0
+            err = 0
         plt.figure(figsize=(6,5))
-        bar = plt.bar(["Perda (%)"], [perda])
-        plt.text(0, perda, f"{perda:.4f}", ha='center', va='bottom')
+        bars = plt.bar(["Perda (%)"], [m], yerr=[err], capsize=5)
+        plt.text(0, m, f"{m:.4f}", ha='center', va='bottom')
         plt.ylabel("Perda (%)")
         plt.title(f"Perda - {format_label(rodada)} - {format_label(test_name)}")
         plt.ylim(bottom=0)
@@ -184,13 +224,15 @@ def plot_perda_barra_for_test(test_dir, test_name):
         plt.savefig(svg_path)
         plt.close()
         
-        soma_perda += perda
+        perda_list.append((m, err))
         count += 1
 
     if count > 0:
-        media_perda = soma_perda / count
+        perda_means = [val for val, err in perda_list]
+        media_perda = np.mean(perda_means)
+        err_perda = 1.96 * np.std(perda_means, ddof=1) / np.sqrt(len(perda_means))
         plt.figure(figsize=(6,5))
-        plt.bar(["Perda (%)"], [media_perda])
+        bars = plt.bar(["Perda (%)"], [media_perda], yerr=[err_perda], capsize=5)
         plt.text(0, media_perda, f"{media_perda:.4f}", ha='center', va='bottom')
         plt.ylabel("Perda (%)")
         plt.title(f"{format_label(test_name)} - Perda (Média das Rodadas)")
@@ -200,9 +242,9 @@ def plot_perda_barra_for_test(test_dir, test_name):
         plt.savefig(png_path)
         plt.savefig(svg_path)
         plt.close()
-        return media_perda
+        return (media_perda, err_perda)
     else:
-        return 0
+        return (0,0)
 
 def plot_cpu_temporal_for_test(test_dir, test_name):
     rounds = get_round_dirs(test_dir)
@@ -365,22 +407,36 @@ def plot_perda_temporal_for_test(test_dir, test_name):
 def plot_cpu_comparativo_por_rodada(test_dir, test_name):
     rounds = get_round_dirs(test_dir)
     data = {}
+    errors = {}
     for rodada in rounds:
         rodada_path = os.path.join(test_dir, rodada)
         mpstat_file = os.path.join(rodada_path, f"{rodada}-{test_name}-mpstat.csv")
         if not os.path.exists(mpstat_file):
             continue
         df = pd.read_csv(mpstat_file)
-        data[rodada] = {col: df[col].mean() for col in df.columns}
+        cpu_dict = {}
+        err_dict = {}
+        n = len(df)
+        for col in df.columns:
+            m = df[col].mean()
+            std = df[col].std()
+            err = 1.96 * std / np.sqrt(n)
+            cpu_dict[col] = m
+            err_dict[col] = err
+        data[rodada] = cpu_dict
+        errors[rodada] = err_dict
     if not data:
         return
     cores = list(next(iter(data.values())).keys())
     x = np.arange(len(cores))
     width = 0.8 / len(data)
     plt.figure(figsize=(10,6))
-    for i, (rodada, cpu_dict) in enumerate(sorted(data.items())):
+    for i, rodada in enumerate(sorted(data.keys())):
+        cpu_dict = data[rodada]
+        err_dict = errors[rodada]
         values = [cpu_dict[core] for core in cores]
-        bars = plt.bar(x + i*width, values, width, label=rodada)
+        err_values = [err_dict[core] for core in cores]
+        bars = plt.bar(x + i*width, values, width, yerr=err_values, capsize=5, label=rodada)
         for bar in bars:
             plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
                      ha='center', va='bottom')
@@ -410,11 +466,13 @@ def plot_cpu_comparativo_por_teste(resultados_dir, tests, cpu_aggregate):
     plt.figure(figsize=(10,6))
     for j, core in enumerate(cores):
         values = []
+        err_values = []
         for test in test_keys:
-            cpu_dict = cpu_aggregate[test]
-            values.append(cpu_dict.get(core, 0))
+            mean_err = cpu_aggregate[test].get(core, (0,0))
+            values.append(mean_err[0])
+            err_values.append(mean_err[1])
         offset = (j - (n_cores - 1)/2) * width
-        bars = plt.bar(x + offset, values, width, label=format_label(core))
+        bars = plt.bar(x + offset, values, width, yerr=err_values, capsize=5, label=format_label(core))
         for i, bar in enumerate(bars):
             plt.text(bar.get_x() + bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
                      ha='center', va='bottom')
@@ -443,8 +501,9 @@ def plot_cpu_comparativo_por_nucleo(resultados_dir, tests, cpu_aggregate):
         if test not in cpu_aggregate:
             continue
         cpu_dict = cpu_aggregate[test]
-        values = [cpu_dict.get(core, 0) for core in cores]
-        bars = plt.bar(x + i*width, values, width, label=format_label(test))
+        values = [cpu_dict.get(core, (0,0))[0] for core in cores]
+        err_values = [cpu_dict.get(core, (0,0))[1] for core in cores]
+        bars = plt.bar(x + i*width, values, width, yerr=err_values, capsize=5, label=format_label(test))
         for bar in bars:
             plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
                      ha='center', va='bottom')
@@ -463,6 +522,7 @@ def plot_cpu_comparativo_por_nucleo(resultados_dir, tests, cpu_aggregate):
 def plot_perda_comparativo_por_rodada(test_dir, test_name):
     rounds = get_round_dirs(test_dir)
     data = {}
+    errors = {}
     for rodada in rounds:
         rodada_path = os.path.join(test_dir, rodada)
         client_file = os.path.join(rodada_path, f"{rodada}-{test_name}-iperf3_client.csv")
@@ -471,14 +531,19 @@ def plot_perda_comparativo_por_rodada(test_dir, test_name):
         df = pd.read_csv(client_file)
         col = '%_pacotes_perdidos' if '%_pacotes_perdidos' in df.columns else None
         if col:
-            data[rodada] = df[col].mean()
+            n = len(df)
+            m = df[col].mean()
+            err = 1.96 * df[col].std() / np.sqrt(n)
+            data[rodada] = m
+            errors[rodada] = err
     if not data:
         return
     rounds_sorted = sorted(data.keys())
     x = np.arange(len(rounds_sorted))
     values = [data[r] for r in rounds_sorted]
+    err_values = [errors[r] for r in rounds_sorted]
     plt.figure(figsize=(8,6))
-    bars = plt.bar(x, values, width=0.5)
+    bars = plt.bar(x, values, width=0.5, yerr=err_values, capsize=5)
     for bar in bars:
         plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), f"{bar.get_height():.4f}",
                  ha='center', va='bottom')
@@ -497,9 +562,10 @@ def plot_perda_comparativo_por_teste(resultados_dir, tests, perda_aggregate):
     prefix = "-".join(sorted(tests))
     tests_sorted = sorted(perda_aggregate.keys())
     x = np.arange(len(tests_sorted))
-    values = [perda_aggregate[test] for test in tests_sorted]
+    values = [perda_aggregate[test][0] for test in tests_sorted]
+    err_values = [perda_aggregate[test][1] for test in tests_sorted]
     plt.figure(figsize=(8,6))
-    bars = plt.bar(x, values, width=0.5)
+    bars = plt.bar(x, values, width=0.5, yerr=err_values, capsize=5)
     for bar in bars:
         plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), f"{bar.get_height():.4f}",
                  ha='center', va='bottom')
@@ -518,6 +584,8 @@ def plot_vazao_comparativo_por_rodada(test_dir, test_name):
     rounds = get_round_dirs(test_dir)
     data_client = {}
     data_server = {}
+    err_client = {}
+    err_server = {}
     for rodada in rounds:
         rodada_path = os.path.join(test_dir, rodada)
         client_file = os.path.join(rodada_path, f"{rodada}-{test_name}-iperf3_client.csv")
@@ -529,9 +597,17 @@ def plot_vazao_comparativo_por_rodada(test_dir, test_name):
         col_client = 'bits_por_segundo' if 'bits_por_segundo' in df_client.columns else None
         col_server = 'taxa_de_bits_por_segundo' if 'taxa_de_bits_por_segundo' in df_server.columns else None
         if col_client:
-            data_client[rodada] = df_client[col_client].mean() / 1e6
+            n_client = len(df_client)
+            m_client = df_client[col_client].mean() / 1e6
+            e_client = 1.96 * df_client[col_client].std() / np.sqrt(n_client) / 1e6
+            data_client[rodada] = m_client
+            err_client[rodada] = e_client
         if col_server:
-            data_server[rodada] = df_server[col_server].mean() / 1e6
+            n_server = len(df_server)
+            m_server = df_server[col_server].mean() / 1e6
+            e_server = 1.96 * df_server[col_server].std() / np.sqrt(n_server) / 1e6
+            data_server[rodada] = m_server
+            err_server[rodada] = e_server
     rounds_sorted = sorted(set(data_client.keys()) & set(data_server.keys()))
     if not rounds_sorted:
         return
@@ -539,9 +615,11 @@ def plot_vazao_comparativo_por_rodada(test_dir, test_name):
     width = 0.35
     client_values = [data_client[r] for r in rounds_sorted]
     server_values = [data_server[r] for r in rounds_sorted]
+    client_err_values = [err_client[r] for r in rounds_sorted]
+    server_err_values = [err_server[r] for r in rounds_sorted]
     plt.figure(figsize=(8,6))
-    bars1 = plt.bar(x - width/2, client_values, width, label="Cliente")
-    bars2 = plt.bar(x + width/2, server_values, width, label="Servidor")
+    bars1 = plt.bar(x - width/2, client_values, width, yerr=client_err_values, capsize=5, label="Cliente")
+    bars2 = plt.bar(x + width/2, server_values, width, yerr=server_err_values, capsize=5, label="Servidor")
     for bar in bars1:
         plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), format_throughput(bar.get_height()),
                  ha='center', va='bottom')
@@ -564,12 +642,14 @@ def plot_vazao_comparativo_por_teste(resultados_dir, tests, vazao_aggregate):
     prefix = "-".join(sorted(tests))
     tests_sorted = sorted(vazao_aggregate.keys())
     x = np.arange(len(tests_sorted))
-    client_values = [vazao_aggregate[test][0] for test in tests_sorted]
-    server_values = [vazao_aggregate[test][1] for test in tests_sorted]
+    client_values = [vazao_aggregate[test][0][0] for test in tests_sorted]
+    server_values = [vazao_aggregate[test][1][0] for test in tests_sorted]
+    client_err_values = [vazao_aggregate[test][0][1] for test in tests_sorted]
+    server_err_values = [vazao_aggregate[test][1][1] for test in tests_sorted]
     width = 0.35
     plt.figure(figsize=(8,6))
-    bars1 = plt.bar(x - width/2, client_values, width, label="Cliente")
-    bars2 = plt.bar(x + width/2, server_values, width, label="Servidor")
+    bars1 = plt.bar(x - width/2, client_values, width, yerr=client_err_values, capsize=5, label="Cliente")
+    bars2 = plt.bar(x + width/2, server_values, width, yerr=server_err_values, capsize=5, label="Servidor")
     for bar in bars1:
         plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), format_throughput(bar.get_height()),
                  ha='center', va='bottom')
@@ -588,9 +668,38 @@ def plot_vazao_comparativo_por_teste(resultados_dir, tests, vazao_aggregate):
     plt.savefig(svg_path)
     plt.close()
 
+# NOVA FUNÇÃO: GRÁFICO COMPARATIVO SOMENTE DA VAZÃO DO SERVIDOR
+def plot_vazao_servidor_comparativo(resultados_dir, tests, vazao_aggregate):
+    """
+    Gera um gráfico de barras contendo somente a vazão do servidor para cada teste.
+    O nome do arquivo seguirá o padrão:
+      teste_N-teste_M-vazao_servidor_comparativo.png (e .svg)
+    """
+    tests_sorted = sorted(tests)
+    x = np.arange(len(tests_sorted))
+    server_values = [vazao_aggregate[test][1][0] for test in tests_sorted if test in vazao_aggregate]
+    server_err_values = [vazao_aggregate[test][1][1] for test in tests_sorted if test in vazao_aggregate]
+    width = 0.5
+    plt.figure(figsize=(8,6))
+    bars = plt.bar(x, server_values, width, yerr=server_err_values, capsize=5)
+    for bar in bars:
+        plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), format_throughput(bar.get_height()),
+                 ha='center', va='bottom')
+    plt.ylabel("Vazão Média do Servidor (Mbps)")
+    plt.xlabel("Teste")
+    plt.title("Vazão do Servidor Comparativo")
+    plt.xticks(x, [format_label(test) for test in tests_sorted])
+    plt.ylim(bottom=0)
+    prefix = "-".join(tests_sorted)
+    png_path = os.path.join(resultados_dir, f"{prefix}-vazao_servidor_comparativo.png")
+    svg_path = os.path.join(resultados_dir, f"{prefix}-vazao_servidor_comparativo.svg")
+    plt.savefig(png_path)
+    plt.savefig(svg_path)
+    plt.close()
+
 def plot_cpu_usage_por_teste_comparativo_for_test(test_dir, test_name):
     rounds = get_round_dirs(test_dir)
-    overall_cpu = {}
+    overall_cpu_values = {}
     count = 0
     for rodada in rounds:
         rodada_path = os.path.join(test_dir, rodada)
@@ -599,16 +708,24 @@ def plot_cpu_usage_por_teste_comparativo_for_test(test_dir, test_name):
             print(f"Aviso: {mpstat_file} não encontrado.")
             continue
         df = pd.read_csv(mpstat_file)
-        cpu_usage = {col: df[col].mean() for col in df.columns}
-        for core, usage in cpu_usage.items():
-            overall_cpu[core] = overall_cpu.get(core, 0) + usage
+        n = len(df)
+        for col in df.columns:
+            m = df[col].mean()
+            err = 1.96 * df[col].std() / np.sqrt(n)
+            overall_cpu_values.setdefault(col, []).append((m, err))
         count += 1
     if count > 0:
-        overall_cpu_avg = {core: val/count for core, val in overall_cpu.items()}
+        overall_cpu_avg = {}
+        overall_cpu_err = {}
+        for core, values in overall_cpu_values.items():
+            means = [v[0] for v in values]
+            overall_cpu_avg[core] = np.mean(means)
+            overall_cpu_err[core] = 1.96 * np.std(means, ddof=1) / np.sqrt(len(means))
         cores = list(overall_cpu_avg.keys())
         valores = [overall_cpu_avg[c] for c in cores]
+        err_values = [overall_cpu_err[c] for c in cores]
         plt.figure(figsize=(8,6))
-        bars = plt.bar(cores, valores)
+        bars = plt.bar(cores, valores, yerr=err_values, capsize=5)
         for bar in bars:
             plt.text(bar.get_x() + bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
                      ha='center', va='bottom')
@@ -686,15 +803,16 @@ def plot_vazao_com_referencia(resultados_dir, tests, vazao_aggregate, ref_srv, r
     """
     tests_ordered = tests  # mantém a ordem conforme informada
     n_tests = len(tests_ordered)
-    # Obtém a vazão do servidor de cada teste
-    test_srv_values = [vazao_aggregate[test][1] for test in tests_ordered if test in vazao_aggregate]
-    ref_values = [ref_srv] * n_tests
+    test_srv_values = [vazao_aggregate[test][1][0] for test in tests_ordered if test in vazao_aggregate]
+    test_srv_errs = [vazao_aggregate[test][1][1] for test in tests_ordered if test in vazao_aggregate]
+    ref_values = [ref_srv[0]] * n_tests
+    ref_errs = [ref_srv[1]] * n_tests
 
     x = np.arange(n_tests)
     width = 0.35
     plt.figure(figsize=(10,6))
-    bars1 = plt.bar(x - width/2, ref_values, width, label="Referência")
-    bars2 = plt.bar(x + width/2, test_srv_values, width, label="Teste")
+    bars1 = plt.bar(x - width/2, ref_values, width, yerr=ref_errs, capsize=5, label="Referência")
+    bars2 = plt.bar(x + width/2, test_srv_values, width, yerr=test_srv_errs, capsize=5, label="Teste")
     for bar in bars1:
         plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), format_throughput(bar.get_height()),
                  ha='center', va='bottom')
@@ -707,7 +825,6 @@ def plot_vazao_com_referencia(resultados_dir, tests, vazao_aggregate, ref_srv, r
     plt.xticks(x, [format_label(test) for test in tests_ordered])
     plt.legend()
     plt.ylim(bottom=0)
-    # Nome do arquivo conforme o padrão: <ref_test>-<teste1>-<teste2>-...-comparativo_vazao_com_referencia
     prefix_filename = f"{ref_test}-{'-'.join(tests_ordered)}-comparativo_vazao_com_referencia"
     filename_png = f"{prefix_filename}.png"
     filepath_png = os.path.join(resultados_dir, filename_png)
@@ -724,15 +841,15 @@ def print_summarization(test_name, cpu_usage, vazao_cliente, vazao_servidor, per
     print(f"\nResumo para {format_label(test_name)}:")
     print("\nUso de CPU por núcleo:")
     for core, usage in cpu_usage.items():
-        print(f"    {format_label(core)}: {usage:.2f}%")
+        print(f"    {format_label(core)}: {usage[0]:.2f}%")
     
     print("\nVazão:")
     print(f"{'Origem':<10}{'Vazão (Mbps)':<15}")
-    print(f"{'Cliente':<10}{vazao_cliente:<15.2f}")
-    print(f"{'Servidor':<10}{vazao_servidor:<15.2f}")
+    print(f"{'Cliente':<10}{vazao_cliente[0]:<15.2f}")
+    print(f"{'Servidor':<10}{vazao_servidor[0]:<15.2f}")
     
     print("\nPerda (%):")
-    print(f"{'Média':<10}{perda:<15.4f}")
+    print(f"{'Média':<10}{perda[0]:<15.4f}")
 
 def main():
     parser = argparse.ArgumentParser(description="Sumariza experimento e gera gráficos comparativos.")
@@ -749,7 +866,6 @@ def main():
     cpus = args.cpus.split(",") if args.cpus else None
     referencia = args.referencia
 
-    # Dicionários para os comparativos entre testes (barras e séries temporais para PERDA)
     cpu_aggregate = {}
     perda_aggregate = {}
     vazao_aggregate = {}
@@ -770,12 +886,10 @@ def main():
         plot_vazao_temporal_for_test(test_dir, test)
         plot_perda_temporal_for_test(test_dir, test)
 
-        # Gráficos comparativos por rodada (barras e séries temporais) no diretório de cada teste
         plot_cpu_comparativo_por_rodada(test_dir, test)
         plot_perda_comparativo_por_rodada(test_dir, test)
         plot_vazao_comparativo_por_rodada(test_dir, test)
 
-        # Gráfico comparativo individual por teste (agrupado por núcleos)
         plot_cpu_usage_por_teste_comparativo_for_test(test_dir, test)
 
         print_summarization(test, cpu_overall, vazao_cli, vazao_srv, perda_overall)
@@ -785,21 +899,20 @@ def main():
         vazao_aggregate[test] = (vazao_cli, vazao_srv)
         perda_temporal_agg[test] = aggregate_perda_temporal_for_test(test_dir, test)
 
-    # Cria um diretório para os gráficos comparativos entre testes
     sumarizado_dir = os.path.join(resultados_dir, "sumarizado-" + "-".join(tests))
     if not os.path.exists(sumarizado_dir):
         os.makedirs(sumarizado_dir)
 
-    # Gráficos comparativos entre testes (barras) dentro do diretório sumarizado
     plot_cpu_comparativo_por_teste(sumarizado_dir, tests, cpu_aggregate)
     plot_cpu_comparativo_por_nucleo(sumarizado_dir, tests, cpu_aggregate)
     plot_perda_comparativo_por_teste(sumarizado_dir, tests, perda_aggregate)
     plot_vazao_comparativo_por_teste(sumarizado_dir, tests, vazao_aggregate)
+    # Chamada da nova função: gráfico somente da vazão do servidor para cada teste.
+    plot_vazao_servidor_comparativo(sumarizado_dir, tests, vazao_aggregate)
 
     agg_perda_temp = aggregate_all_perda_temporal(resultados_dir, tests)
     plot_perda_temporal_comparativo_por_teste(sumarizado_dir, tests, agg_perda_temp)
 
-    # Se for informado o parâmetro de CPUs, gera o gráfico comparativo de uso de CPU por teste (filtrando as CPUs)
     if cpus:
         def plot_cpu_comparativo_por_teste_cpus(resultados_dir, tests, cpu_aggregate, cpus):
             tests_sorted = sorted([test for test in tests if test in cpu_aggregate])
@@ -810,8 +923,10 @@ def main():
             plt.figure(figsize=(10,6))
             for j, cpu in enumerate(cpus):
                 values = []
+                err_values = []
                 for test in tests_sorted:
                     usage = 0
+                    err = 0
                     for key, val in cpu_aggregate[test].items():
                         k = key.lower()
                         if k.startswith("cpu"):
@@ -819,11 +934,12 @@ def main():
                             if num.startswith("_"):
                                 num = num[1:]
                             if num == cpu:
-                                usage = val
+                                usage, err = val
                                 break
                     values.append(usage)
+                    err_values.append(err)
                 offset = (j - (n_cpus - 1)/2) * width
-                bars = plt.bar(x + offset, values, width, label=f"CPU {cpu}")
+                bars = plt.bar(x + offset, values, width, yerr=err_values, capsize=5, label=f"CPU {cpu}")
                 for i, bar in enumerate(bars):
                     plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
                              ha='center', va='bottom')
@@ -844,7 +960,6 @@ def main():
             plt.close()
         plot_cpu_comparativo_por_teste_cpus(sumarizado_dir, tests, cpu_aggregate, cpus)
 
-    # Se o parâmetro de teste de referência for informado, gera o gráfico comparativo de vazão com referência.
     if referencia:
         ref_test = referencia
         ref_dir = os.path.join(resultados_dir, ref_test)
@@ -852,8 +967,8 @@ def main():
             print(f"Aviso: Diretório do teste de referência {ref_dir} não encontrado.")
         else:
             print(f"\nProcessando teste de referência {format_label(ref_test)} ...")
-            _, ref_vazao_srv = plot_vazao_barra_for_test(ref_dir, ref_test)
-            plot_vazao_com_referencia(sumarizado_dir, tests, vazao_aggregate, ref_vazao_srv, ref_test)
+            vazao_ref = plot_vazao_barra_for_test(ref_dir, ref_test)
+            plot_vazao_com_referencia(sumarizado_dir, tests, vazao_aggregate, vazao_ref[1], ref_test)
 
 if __name__ == "__main__":
     main()
