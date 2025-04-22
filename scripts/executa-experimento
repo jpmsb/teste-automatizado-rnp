@@ -92,19 +92,24 @@ roda_teste(){
     mkdir -p $dir_este_script/resultados/$apelido/rodada_$rodada_atual
 
     echo -e "${amarelo}Iniciando o servidor no núcleo ${nucleo_servidor}...${normal}"
-    docker exec $servidor iperf3 -s -J --one-off -A $nucleo_servidor | $dir_este_script/iperf_server_json_to_csv.py > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.csv 2>/dev/null &
+    docker exec $servidor iperf3 -s -J --one-off -A $nucleo_servidor > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.json &
  
     sleep 1
     echo -e "${amarelo}Preparando o mpstat...${normal}"
-    $dir_este_script/mpstat-trigger $duracao $dir_este_script/resultados/$apelido/rodada_$rodada_atual rodada_$rodada_atual-${apelido}-mpstat.log 2>/dev/null &
+    numactl -C 0 $dir_este_script/mpstat-trigger $duracao $dir_este_script/resultados/$apelido/rodada_$rodada_atual rodada_$rodada_atual-${apelido}-mpstat.log 2>/dev/null &
 
     sleep 1
-    docker exec $cliente iperf3 -u -J -w 1m -b $banda -c $servidor -A $nucleo_cliente -t $duracao | $dir_este_script/iperf_client_json_to_csv.py > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.csv 2>/dev/null &
+    docker exec $cliente iperf3 -u -J -w 1m -b $banda -c $servidor -A $nucleo_cliente -t $duracao > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.json &
 
     contagem_regressiva $duracao "${amarelo}Iniciando o cliente no núcleo ${nucleo_cliente}...${normal}"
     wait $(jobs -p)
 
     sleep 1
+    # Processa os resultados para CSV
+    cat $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.json | $dir_este_script/iperf_server_json_to_csv.py > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.csv 2>/dev/null
+
+    cat $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.json | $dir_este_script/iperf_client_json_to_csv.py > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.csv 2>/dev/null
+
     cat $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-mpstat.log | $dir_este_script/mpstat_to_csv.py > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-mpstat.csv
     echo -e "\n##################################################\n"
 }
