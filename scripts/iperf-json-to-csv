@@ -17,7 +17,7 @@ PROTOCOLO=$(jq -r '.start.test_start.protocol' "$ARQUIVO_JSON")
 if "$(jq '.start | has("accepted_connection")' $ARQUIVO_JSON)"; then
     # Se for o servidor
     if [ "$PROTOCOLO" = "UDP" ]; then
-        echo "total_bytes_transferidos,bits_por_segundo,jitter,total_pacotes_perdidos,porcentagem_pacotes_perdidos"
+        echo "host_origem,porta_origem,total_bytes_transferidos,bits_por_segundo,jitter,total_pacotes_perdidos,porcentagem_pacotes_perdidos"
         jq -r '.intervals[].sum as $soma | .start.connected[0] as $conexao | "\($conexao.remote_host),\($conexao.remote_port),\($soma.bytes),\($soma.bits_per_second),\($soma.jitter_ms),\($soma.lost_packets),\($soma.lost_percent)"' "$ARQUIVO_JSON"
 
     else
