@@ -4,7 +4,7 @@ Este repositório contém _scripts_ que realizam um teste de vazão de forma pad
 
 Dessa forma:
 
-- O _script_ [`executa-experimento`](scripts/executa-experimento) realiza a criação do cenário a partir de um arquivo `docker-compose.yml` e realiza os testes de vazão utilizando o `iperf`. Nesta rotina, também são verificados quais módulos do Python 3 estão faltando para que sejam instalados;
+- O _script_ [`executa-experimento`](scripts/executa-experimento) realiza a execução dos testes de vazão utilizando o `iperf` e a coleta de métricas de desempenho;
 
 - O _script_ [`sumarizar-experimento`](scripts/sumarizar-experimento.py) realiza o processamento dos dados gerados pelo `iperf` e gera gráficos com os resultados.
 
@@ -37,7 +37,7 @@ Dessa forma:
 Primeiramente, clone o repositório:
 
 ```bash
-git clone https://git.rnp.br/gci/dev/melhorias-monipe/teste-automatizado
+git clone https://github.com/jpmsb/teste-automatizado-rnp
 ```
 
 Em seguida, entre no diretório `scripts`:
@@ -51,38 +51,32 @@ Abaixo, é demonstrado como utilizar as rotinas:
 - `executa-experimento`
 
     ```bash
-    ./executa-experimento -c <cpu cliente> -s <cpu servidor> -d <arquivo docker-compose.yml> -a <nome> -t <duração> -r <repetições> -b <banda máxima>
+    ./executa-experimento -s <comando iperf3 do servidor> -c <comando iperf3 do cliente> -a <nome> -r <repetições>
     ```
 
     Os argumentos suportados são listados abaixo:
 
-    - [obrigatório] `-c`, `--nucleo-cliente`: núcleo de CPU onde o cliente do `iperf` será executado;
+    - [obrigatório] `-c`, `--comando-cliente`: comando do `iperf` do cliente;
 
-    - [obrigatório] `-s`, `--nucleo-servidor`: núcleo de CPU onde o servidor do `iperf` será executado;
-
-    - [obrigatório] `-d`, `--docker-compose`: arquivo `docker-compose.yml` que contém a descrição do cenário;
+    - [obrigatório] `-s`, `--comando-servidor`: comando do `iperf` do servidor;
 
     - [obrigatório] `-a`, `--apelido`: apelido do teste;
 
     - [opcional] `-t`, `--duracao`: tempo de execução, em segundos, do teste. Quando não informado, o valor padrão é 10 segundos;
-    
-    - [opcional] `-b`, `--banda-maxima`: banda máxima, informada no formato aceito pelo `iperf3`. Ex.: 1M, 1G, 10G. Quando não informado, o valor padrão é 10G;
 
     - [opcional] `-r`, `--rodadas`: quantidade de repetições do teste. Quando não informado, o valor padrão é 1.
 
     Exemplo de uso:
 
     ```bash
-    ./executa-experimento -c 2 -s 1 -d ~/teste10Gbit/docker-compose.yml -a "cenario_1" -t 10 -r 5
+    ./executa-experimento -s 'iperf3 -s' -c 'iperf3 -c servidor -A 3,9 -t 600' -r 5 -a "teste"
     ```
 
     No exemplo acima:
 
-    - O teste será executado com o cliente utilizando o núcleo 2 e o servidor utilizando o núcleo 1;
+    - O teste será executado com o cliente utilizando o núcleo 3 e o servidor utilizando o núcleo 9;
 
-    - O cenário será criado a partir do arquivo `docker-compose.yml` localizado em `~/teste10Gbit/`;
-
-    - O apelido do teste será `cenario_1`;
+    - O apelido do teste será `teste`;
 
     - O teste terá duração de 10 segundos;
 
@@ -178,19 +172,19 @@ Abaixo, é demonstrado como utilizar as rotinas:
 - `sumarizar-experimento`
 
     ```bash
-    ./sumarizar-experimento.py <diretório de resultados> <apelido_teste_1> <apelido_teste_2> ... <apelido_teste_n>
+    ./sumarizar-experimento.py -d <diretório de resultados> -t <apelido_teste_1> -t <apelido_teste_2> ... -t <apelido_teste_n>
     ```
 
     Os argumentos suportados são listados abaixo:
 
-    - [obrigatório] `<diretório de resultados>`: diretório onde estão os arquivos de resultados dos testes. É neste diretório que os gráficos gerados serão salvos, de acordo com o contexto de cada um. Por exemplo, gráficos que contenham informação sobre uma rodada de um teste, serão salvos em um diretório com o nome da rodada;
+    - [obrigatório] `-d`, `--diretorio`: diretório onde estão os arquivos de resultados dos testes. É neste diretório que os gráficos gerados serão salvos, de acordo com o contexto de cada um. Por exemplo, gráficos que contenham informação sobre uma rodada de um teste, serão salvos em um diretório com o nome da rodada;
 
-    - [obrigatório] `<apelido_teste_1> <apelido_teste_2> ... <apelido_teste_n>`: apelidos dos testes que serão sumarizados. Estes apelidos são os mesmos informados no momento da execução do teste.
+    - [obrigatório] `-t`, `--teste`: apelidos dos testes que serão sumarizados. Estes apelidos são os mesmos informados no momento da execução do teste.
 
     Exemplo de uso:
 
     ```bash
-    ./sumarizar-experimento.py /home/vagrant/scripts/resultados "teste_1" "teste_2" "teste_3"
+    ./sumarizar-experimento.py -d /home/resultados -t "teste_1" -t "teste_2" -t "teste_3"
     ```
 
     A saída no terminal será algo como:
