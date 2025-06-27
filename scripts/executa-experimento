@@ -8,7 +8,7 @@ ajustes(){
 
 verifica_dependencias(){
     # Verifica se as dependências do sistema necessárias estão instaladas
-    dependencias=(docker docker-compose numactl python3)
+    dependencias=(numactl python3 jq)
     dependencia_faltante=()
 
     for dependencia in ${dependencias[@]}; do
@@ -44,25 +44,16 @@ verifica_dependencias(){
     fi
 }
 
-# Sobe o cenário contido no docker-compose.yml
+# Executa o script que prepara o cenário
 sobe_cenario(){
-    echo -e "\n${verde}Subindo o cenário...${normal}\n"
+    local script_preparatorio="$1"
 
-    nome_interface=$(grep -oP '(?<=parent: )[^.]+' $arquivo_docker_compose)
-    interfaces="$(ip l | grep -oP '^\d+: \K[^:@]+' | grep $nome_interface)"
-
-    # Subindo a interface, bem como sua VLAN, se existir, e definindo o MTU para 9000
-    for interface in $interfaces; do
-        sudo ip link set $interface up
-        sudo ip link set $interface mtu 9000
-    done
-
-    docker compose -f $arquivo_docker_compose up -d
+    bash $script_preparatorio > /dev/null 2>&1
 }
 
 mata_processos(){
     echo "Limpando processos antigos..."
-    docker compose -f $arquivo_docker_compose down
+    pkill -f iperf3 -9
 }
 
 contagem_regressiva(){
@@ -81,34 +72,72 @@ contagem_regressiva(){
 }
 
 roda_teste(){
-    local banda=$1
-    local nucleo_servidor=$2
-    local nucleo_cliente=$3
-    local duracao=$4
-    local rodada_atual=$5
+    local rodada_atual="$1"
+    local comando_cliente="$2"
+    local comando_servidor="$3"
+    local nucleo_servidor=0
+    local nucleo_cliente=0
+    local nucleo=0
+    local texto_banda=""
+    local args_extras=""
+
+    local banda=$(echo $comando_cliente | grep -oP '(?<=-b\s?)(\d+)([MG]?)' | tail -1)
+    local quantidade_fluxos=$(echo $comando_cliente | grep -oP '(?<=-P\s?)(\d+)' | tail -1)
+
+    local duracao=$(echo $comando_cliente | grep -oP '(?<=-t\s?)(\d+)' | tail -1)
+
+    if [ -z "$duracao" ] || [ "$duracao" -eq 0 ]; then
+        duracao=10
+        args_extras="-t $duracao"
+    fi
+
+    # Obtendo o núcleo do servidor através do comando do servidor
+    nucleo_servidor=$(echo $comando_servidor | grep -oP '(?<=-A\s?)(\d+)' | tail -1)
+
+    if [ -z "$nucleo_servidor" ]; then
+        # Obtendo o núcleo do servidor através do comando do cliente
+        nucleo=$(echo $comando_cliente | grep -oP '(?<=-A\s?)(\d+,\d+)' | tail -1)
+
+        if [ -n "$nucleo" ]; then
+            if [[ $nucleo =~ ^[0-9]+,[0-9]+$ ]]; then
+                # Se o núcleo estiver no formato "nucleo_cliente,nucleo_servidor"
+                nucleo_cliente="$(echo $nucleo | cut -d',' -f1)"
+                nucleo_servidor="$(echo $nucleo | cut -d',' -f2)"
+            else
+                # Se houver apenas um número, é o do cliente
+                nucleo_cliente="$nucleo"
+            fi
+        fi
+    fi
+
+    if [ -z "$banda" ]; then
+        texto_banda=", sem limite de banda"
+    else
+        texto_banda=", com banda de ${banda}"
+    fi
 
     echo -e "\n##################################################"
-    echo -e "\n${verde}Executando a rodada $rodada_atual do teste de $duracao segundos com banda de ${banda}...${normal}\n"
+    echo -e "\n${verde}Executando a rodada $rodada_atual do teste de $duracao segundos${texto_banda}...${normal}\n"
     mkdir -p $dir_este_script/resultados/$apelido/rodada_$rodada_atual
 
     echo -e "${amarelo}Iniciando o servidor no núcleo ${nucleo_servidor}...${normal}"
-    docker exec $servidor iperf3 -s -J --one-off -A $nucleo_servidor > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.json &
- 
+    $comando_servidor -J --one-off > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.json &
+
     sleep 1
     echo -e "${amarelo}Preparando o mpstat...${normal}"
     numactl -C 0 $dir_este_script/mpstat-trigger $duracao $dir_este_script/resultados/$apelido/rodada_$rodada_atual rodada_$rodada_atual-${apelido}-mpstat.log 2>/dev/null &
 
     sleep 1
-    docker exec $cliente iperf3 -u -J -w 1m -b $banda -c $servidor -A $nucleo_cliente -t $duracao > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.json &
+    $comando_cliente $args_extras -J > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.json &
 
     contagem_regressiva $duracao "${amarelo}Iniciando o cliente no núcleo ${nucleo_cliente}...${normal}"
     wait $(jobs -p)
 
     sleep 1
     # Processa os resultados para CSV
-    cat $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.json | $dir_este_script/iperf_server_json_to_csv.py > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.csv 2>/dev/null
+    $dir_este_script/iperf-json-to-csv $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.json > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.csv 2>/dev/null
 
-    cat $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.json | $dir_este_script/iperf_client_json_to_csv.py > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.csv 2>/dev/null
+    $dir_este_script/iperf-json-to-csv $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.json > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.csv 2>/dev/null
 
     cat $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-mpstat.log | $dir_este_script/mpstat_to_csv.py > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-mpstat.csv
     echo -e "\n##################################################\n"
@@ -125,48 +154,33 @@ ciano="\033[1;36m"
 rosa="\033[1;95m"
 normal="\033[0m"
 
-# Nome dos contêineres
-cliente="monipe-src"
-servidor="monipe-dst"
-
 # Processar os argumentos
 while [[ $# -gt 0 ]]; do
     argumento=$1
     case $argumento in
-        -c|--nucleo-cliente)
-            nucleo_cliente=$2
-            shift
-            shift
-            ;;
-        -s|--nucleo-servidor)
-            nucleo_servidor=$2
-            shift
-            shift
-            ;;
-        -d|--docker-compose)
-            arquivo_docker_compose=$2
-            shift
-            shift
-            ;;
         -a|--apelido)
             apelido=$2
-            shift
-            shift
+            shift 2
             ;;
         -t|--duracao)
             duracao=$2
-            shift
-            shift
+            shift 2
             ;;
         -r|--rodadas)
             rodadas=$2
-            shift
-            shift
+            shift 2
             ;;
-        -b|--banda-maxima)
-            banda_maxima=$2
-            shift
-            shift
+        --comando-cliente|-c)
+            comando_cliente=$2
+            shift 2
+            ;;
+        --comando-servidor|-s)
+            comando_servidor=$2
+            shift 2
+            ;;
+        --script-inicial)
+            script_inicial=$2
+            shift 2
             ;;
         *)
             echo "Argumento inválido: $1"
@@ -174,11 +188,6 @@ while [[ $# -gt 0 ]]; do
             ;;
     esac
 done
-
-if [ -z "$nucleo_cliente" ] || [ -z "$nucleo_servidor" ] || [ -z "$arquivo_docker_compose" ] || [ -z "$apelido" ]; then
-    echo "Uso: $0 -c <núcleo do cliente> -s <núcleo do servidor> -d <arquivo docker-compose> -a <apelido> [-t <duração do teste> -r <número de rodadas> -b <banda máxima>]"
-    exit 1
-fi
 
 if [ -z "$duracao" ]; then
     duracao=10
@@ -188,13 +197,7 @@ if [ -z "$rodadas" ]; then
     rodadas=1
 fi
 
-if [ -z "$banda_maxima" ]; then
-    banda_maxima="10G"
-fi
-
-dir_docker_compose=$(dirname $(realpath $arquivo_docker_compose))
 dir_este_script=$(dirname $(realpath $0))
-algoritmo=('udp')
 
 if [ ! -d resultados ]; then
     mkdir resultados
@@ -204,13 +207,13 @@ rm -rf $dir_este_script/resultados/$apelido
 mkdir -p $dir_este_script/resultados/$apelido
 
 verifica_dependencias
-mata_processos
-sobe_cenario
+# mata_processos
+# sobe_cenario
 
 for rodada_atual in $(seq 1 $rodadas); do
-    roda_teste $banda_maxima $nucleo_servidor $nucleo_cliente $duracao $rodada_atual
+    roda_teste "$rodada_atual" "$comando_cliente" "$comando_servidor"
 done
 
-mata_processos
+# mata_processos
 
 echo -e "\nFim: $(date '+%Y-%m-%d %H:%M:%S')" > $dir_este_script/resultados/$apelido/$apelido-experimento.log
