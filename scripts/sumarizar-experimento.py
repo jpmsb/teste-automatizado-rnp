@@ -115,10 +115,13 @@ def plot_vazao_barra_for_test(test_dir, test_name):
         if not os.path.exists(client_file) or not os.path.exists(server_file):
             print(f"Aviso: Arquivos de vazão não encontrados em {rodada_path}.")
             continue
+
         df_client = pd.read_csv(client_file)
         df_server = pd.read_csv(server_file)
+
         col_client = 'bits_por_segundo' if 'bits_por_segundo' in df_client.columns else None
-        col_server = 'taxa_de_bits_por_segundo' if 'taxa_de_bits_por_segundo' in df_server.columns else None
+        col_server = 'bits_por_segundo' if 'bits_por_segundo' in df_server.columns else None
+
         if col_client:
             n_client = len(df_client)
             mean_client = df_client[col_client].mean() / 1e6
@@ -126,6 +129,7 @@ def plot_vazao_barra_for_test(test_dir, test_name):
         else:
             mean_client = 0
             err_client = 0
+
         if col_server:
             n_server = len(df_server)
             mean_server = df_server[col_server].mean() / 1e6
@@ -199,23 +203,51 @@ def plot_perda_barra_for_test(test_dir, test_name):
     count = 0
     for rodada in rounds:
         rodada_path = os.path.join(test_dir, rodada)
+        # Tenta pegar a perda do servidor (UDP) ou retransmissões do cliente (TCP)
+        server_file = os.path.join(rodada_path, f"{rodada}-{test_name}-iperf3_server.csv")
         client_file = os.path.join(rodada_path, f"{rodada}-{test_name}-iperf3_client.csv")
-        if not os.path.exists(client_file):
-            print(f"Aviso: {client_file} não encontrado.")
-            continue
-        df = pd.read_csv(client_file)
-        col = '%_pacotes_perdidos' if '%_pacotes_perdidos' in df.columns else None
-        if col:
-            n = len(df)
-            m = df[col].mean()
-            err = 1.96 * df[col].std() / np.sqrt(n)
+
+        m = 0
+        err = 0
+
+        # Primeiro tenta UDP no servidor: "porcentagem_pacotes_perdidos"
+        if os.path.exists(server_file):
+            df_srv = pd.read_csv(server_file)
+            if "porcentagem_pacotes_perdidos" in df_srv.columns:
+                n = len(df_srv)
+                m = df_srv["porcentagem_pacotes_perdidos"].mean()
+                err = 1.96 * df_srv["porcentagem_pacotes_perdidos"].std() / np.sqrt(n)
+            # Se não, tenta TCP no cliente: "retransmissoes"
+            elif os.path.exists(client_file):
+                df_cli = pd.read_csv(client_file)
+                if "retransmissoes" in df_cli.columns:
+                    n = len(df_cli)
+                    m = df_cli["retransmissoes"].mean()
+                    err = 1.96 * df_cli["retransmissoes"].std() / np.sqrt(n)
+                else:
+                    # Sem dados de perda/retransmissão
+                    m = 0
+                    err = 0
+        # Se não tem server_file, tenta só no cliente
+        elif os.path.exists(client_file):
+            df_cli = pd.read_csv(client_file)
+            # Para UDP no cliente, não tem perda (apenas bits por segundo), então pula
+            # Para TCP no cliente, "retransmissoes"
+            if "retransmissoes" in df_cli.columns:
+                n = len(df_cli)
+                m = df_cli["retransmissoes"].mean()
+                err = 1.96 * df_cli["retransmissoes"].std() / np.sqrt(n)
+            else:
+                m = 0
+                err = 0
         else:
-            m = 0
-            err = 0
+            print(f"Aviso: Nenhum arquivo iperf3 encontrado para {rodada}.")
+            continue
+
         plt.figure(figsize=(6,5))
-        bars = plt.bar(["Perda (%)"], [m], yerr=[err], capsize=5)
+        bars = plt.bar(["Perda"], [m], yerr=[err], capsize=5)
         plt.text(0, m, f"{m:.4f}", ha='center', va='bottom')
-        plt.ylabel("Perda (%)")
+        plt.ylabel("Perda (%)" if m < 1e2 else "Retransmissões")
         plt.title(f"Perda - {format_label(rodada)} - {format_label(test_name)}")
         plt.ylim(bottom=0)
         png_path = os.path.join(rodada_path, f"{rodada}-{test_name}-perda_barra.png")
@@ -232,9 +264,9 @@ def plot_perda_barra_for_test(test_dir, test_name):
         media_perda = np.mean(perda_means)
         err_perda = 1.96 * np.std(perda_means, ddof=1) / np.sqrt(len(perda_means))
         plt.figure(figsize=(6,5))
-        bars = plt.bar(["Perda (%)"], [media_perda], yerr=[err_perda], capsize=5)
+        bars = plt.bar(["Perda"], [media_perda], yerr=[err_perda], capsize=5)
         plt.text(0, media_perda, f"{media_perda:.4f}", ha='center', va='bottom')
-        plt.ylabel("Perda (%)")
+        plt.ylabel("Perda (%)" if media_perda < 1e2 else "Retransmissões")
         plt.title(f"{format_label(test_name)} - Perda (Média das Rodadas)")
         plt.ylim(bottom=0)
         png_path = os.path.join(test_dir, f"{test_name}-perda_barra.png")
@@ -319,32 +351,42 @@ def plot_vazao_temporal_for_test(test_dir, test_name):
     if not (dfs_client and dfs_server):
         print(f"Aviso: Não foi possível criar o gráfico temporal para {test_name} por falta de dados.")
         return
+
+    # Calcula o menor comprimento comum
     common_length = min(min(len(df) for df in dfs_client), min(len(df) for df in dfs_server))
     df_med_client = dfs_client[0].iloc[:common_length].copy()
-    for col in df_med_client.columns:
-        if col == 'tempo':
-            continue
-        values_list = [
-            pd.to_numeric(df[col].iloc[:common_length], errors='coerce').fillna(0).values.astype(float)
-            for df in dfs_client if col in df.columns
-        ]
-        if values_list:
-            df_med_client[col] = np.mean(values_list, axis=0)
     df_med_server = dfs_server[0].iloc[:common_length].copy()
-    for col in df_med_server.columns:
-        if col == 'tempo':
-            continue
-        values_list = [
-            pd.to_numeric(df[col].iloc[:common_length], errors='coerce').fillna(0).values.astype(float)
-            for df in dfs_server if col in df.columns
+
+    # Faz média das séries temporais para o cliente
+    if 'bits_por_segundo' in df_med_client.columns:
+        values_list_client = [
+            pd.to_numeric(df['bits_por_segundo'].iloc[:common_length], errors='coerce').fillna(0).values.astype(float)
+            for df in dfs_client if 'bits_por_segundo' in df.columns
         ]
-        if values_list:
-            df_med_server[col] = np.mean(values_list, axis=0)
+        if values_list_client:
+            df_med_client['bits_por_segundo'] = np.mean(values_list_client, axis=0)
+
+    # Faz média das séries temporais para o servidor
+    if 'bits_por_segundo' in df_med_server.columns:
+        values_list_server = [
+            pd.to_numeric(df['bits_por_segundo'].iloc[:common_length], errors='coerce').fillna(0).values.astype(float)
+            for df in dfs_server if 'bits_por_segundo' in df.columns
+        ]
+        if values_list_server:
+            df_med_server['bits_por_segundo'] = np.mean(values_list_server, axis=0)
+
+    # Plotagem
     plt.figure(figsize=(8,6))
+    plotted_any = False
     if 'bits_por_segundo' in df_med_client.columns:
         plt.plot(df_med_client['tempo'], df_med_client['bits_por_segundo']/1e6, label="Cliente")
-    if 'taxa_de_bits_por_segundo' in df_med_server.columns:
-        plt.plot(df_med_server['tempo'], df_med_server['taxa_de_bits_por_segundo']/1e6, label="Servidor")
+        plotted_any = True
+    if 'bits_por_segundo' in df_med_server.columns:
+        plt.plot(df_med_server['tempo'], df_med_server['bits_por_segundo']/1e6, label="Servidor")
+        plotted_any = True
+    if not plotted_any:
+        print(f"Nenhuma coluna 'bits_por_segundo' encontrada nos arquivos para {test_name}.")
+        return
     plt.ylabel("Vazão (Mbps)")
     plt.xlabel("Tempo (s)")
     plt.title(f"{format_label(test_name)} - Vazão Temporal")
@@ -523,33 +565,66 @@ def plot_perda_comparativo_por_rodada(test_dir, test_name):
     rounds = get_round_dirs(test_dir)
     data = {}
     errors = {}
+    labels_map = {}  # rodada -> label
+
     for rodada in rounds:
         rodada_path = os.path.join(test_dir, rodada)
+        server_file = os.path.join(rodada_path, f"{rodada}-{test_name}-iperf3_server.csv")
         client_file = os.path.join(rodada_path, f"{rodada}-{test_name}-iperf3_client.csv")
-        if not os.path.exists(client_file):
-            continue
-        df = pd.read_csv(client_file)
-        col = '%_pacotes_perdidos' if '%_pacotes_perdidos' in df.columns else None
-        if col:
-            n = len(df)
-            m = df[col].mean()
-            err = 1.96 * df[col].std() / np.sqrt(n)
-            data[rodada] = m
-            errors[rodada] = err
+
+        # UDP servidor: porcentagem_pacotes_perdidos
+        if os.path.exists(server_file):
+            df_srv = pd.read_csv(server_file)
+            if "porcentagem_pacotes_perdidos" in df_srv.columns:
+                n = len(df_srv)
+                m = df_srv["porcentagem_pacotes_perdidos"].mean()
+                err = 1.96 * df_srv["porcentagem_pacotes_perdidos"].std() / np.sqrt(n)
+                data[rodada] = m
+                errors[rodada] = err
+                labels_map[rodada] = "Perda (%)"
+                continue  # Achou, passa pra próxima rodada
+
+        # TCP cliente: retransmissoes
+        if os.path.exists(client_file):
+            df_cli = pd.read_csv(client_file)
+            if "retransmissoes" in df_cli.columns:
+                n = len(df_cli)
+                m = df_cli["retransmissoes"].mean()
+                err = 1.96 * df_cli["retransmissoes"].std() / np.sqrt(n)
+                data[rodada] = m
+                errors[rodada] = err
+                labels_map[rodada] = "Retransmissões"
+                continue
+
     if not data:
+        print("Nenhum dado de perda/retransmissão encontrado para as rodadas.")
         return
+
     rounds_sorted = sorted(data.keys())
     x = np.arange(len(rounds_sorted))
     values = [data[r] for r in rounds_sorted]
     err_values = [errors[r] for r in rounds_sorted]
+
+    # Se houver só um tipo de label, usa no ylabel; se houver mistura, exibe ambos
+    label_set = set(labels_map[r] for r in rounds_sorted)
+    if len(label_set) == 1:
+        ylabel = list(label_set)[0]
+        title_tipo = ylabel
+    else:
+        ylabel = "Perda/Retransmissões"
+        title_tipo = "Perda/Retransmissões"
+
     plt.figure(figsize=(8,6))
     bars = plt.bar(x, values, width=0.5, yerr=err_values, capsize=5)
-    for bar in bars:
-        plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), f"{bar.get_height():.4f}",
-                 ha='center', va='bottom')
-    plt.ylabel("Perda (%)")
+    for i, bar in enumerate(bars):
+        rodada = rounds_sorted[i]
+        lbl = labels_map[rodada]
+        val = bar.get_height()
+        plt.text(bar.get_x()+bar.get_width()/2, val, f"{val:.4f}\n({lbl})",
+                 ha='center', va='bottom', fontsize=9)
+    plt.ylabel(ylabel)
     plt.xlabel("Rodada")
-    plt.title(f"{format_label(test_name)} - Perda Comparativo por Rodada")
+    plt.title(f"{format_label(test_name)} - {title_tipo} Comparativo por Rodada")
     plt.xticks(x, rounds_sorted)
     plt.ylim(bottom=0)
     png_path = os.path.join(test_dir, f"{test_name}-perda_barra_comparativo.png")
@@ -586,30 +661,35 @@ def plot_vazao_comparativo_por_rodada(test_dir, test_name):
     data_server = {}
     err_client = {}
     err_server = {}
+
     for rodada in rounds:
         rodada_path = os.path.join(test_dir, rodada)
         client_file = os.path.join(rodada_path, f"{rodada}-{test_name}-iperf3_client.csv")
         server_file = os.path.join(rodada_path, f"{rodada}-{test_name}-iperf3_server.csv")
         if not os.path.exists(client_file) or not os.path.exists(server_file):
             continue
+
         df_client = pd.read_csv(client_file)
         df_server = pd.read_csv(server_file)
-        col_client = 'bits_por_segundo' if 'bits_por_segundo' in df_client.columns else None
-        col_server = 'taxa_de_bits_por_segundo' if 'taxa_de_bits_por_segundo' in df_server.columns else None
-        if col_client:
+        # Cliente
+        if 'bits_por_segundo' in df_client.columns:
             n_client = len(df_client)
-            m_client = df_client[col_client].mean() / 1e6
-            e_client = 1.96 * df_client[col_client].std() / np.sqrt(n_client) / 1e6
+            m_client = df_client['bits_por_segundo'].mean() / 1e6
+            e_client = 1.96 * df_client['bits_por_segundo'].std() / np.sqrt(n_client) / 1e6
             data_client[rodada] = m_client
             err_client[rodada] = e_client
-        if col_server:
+        # Servidor
+        if 'bits_por_segundo' in df_server.columns:
             n_server = len(df_server)
-            m_server = df_server[col_server].mean() / 1e6
-            e_server = 1.96 * df_server[col_server].std() / np.sqrt(n_server) / 1e6
+            m_server = df_server['bits_por_segundo'].mean() / 1e6
+            e_server = 1.96 * df_server['bits_por_segundo'].std() / np.sqrt(n_server) / 1e6
             data_server[rodada] = m_server
             err_server[rodada] = e_server
+
+    # Considera apenas rodadas onde ambos existem (cliente e servidor)
     rounds_sorted = sorted(set(data_client.keys()) & set(data_server.keys()))
     if not rounds_sorted:
+        print("Nenhum dado de vazão encontrado em comum para cliente e servidor.")
         return
     x = np.arange(len(rounds_sorted))
     width = 0.35
@@ -668,13 +748,7 @@ def plot_vazao_comparativo_por_teste(resultados_dir, tests, vazao_aggregate):
     plt.savefig(svg_path)
     plt.close()
 
-# NOVA FUNÇÃO: GRÁFICO COMPARATIVO SOMENTE DA VAZÃO DO SERVIDOR
 def plot_vazao_servidor_comparativo(resultados_dir, tests, vazao_aggregate):
-    """
-    Gera um gráfico de barras contendo somente a vazão do servidor para cada teste.
-    O nome do arquivo seguirá o padrão:
-      teste_N-teste_M-vazao_servidor_comparativo.png (e .svg)
-    """
     tests_sorted = sorted(tests)
     x = np.arange(len(tests_sorted))
     server_values = [vazao_aggregate[test][1][0] for test in tests_sorted if test in vazao_aggregate]
@@ -745,16 +819,30 @@ def plot_cpu_usage_por_teste_comparativo_for_test(test_dir, test_name):
 def aggregate_perda_temporal_for_test(test_dir, test_name):
     rounds = get_round_dirs(test_dir)
     dfs = []
+    col = None
     for rodada in rounds:
         rodada_path = os.path.join(test_dir, rodada)
+        server_file = os.path.join(rodada_path, f"{rodada}-{test_name}-iperf3_server.csv")
         client_file = os.path.join(rodada_path, f"{rodada}-{test_name}-iperf3_client.csv")
-        if not os.path.exists(client_file):
-            continue
-        df = pd.read_csv(client_file)
-        col = '%_pacotes_perdidos' if '%_pacotes_perdidos' in df.columns else None
-        if col:
+
+        df = None
+        # Prioridade: UDP servidor
+        if os.path.exists(server_file):
+            df_srv = pd.read_csv(server_file)
+            if "porcentagem_pacotes_perdidos" in df_srv.columns:
+                df = df_srv
+                col = "porcentagem_pacotes_perdidos"
+        # Se não, TCP cliente
+        if df is None and os.path.exists(client_file):
+            df_cli = pd.read_csv(client_file)
+            if "retransmissoes" in df_cli.columns:
+                df = df_cli
+                col = "retransmissoes"
+        if df is not None and col is not None:
+            df = df.reset_index(drop=True)
             df['tempo'] = range(len(df))
             dfs.append(df[['tempo', col]])
+
     if not dfs:
         return None, None
     common_length = min(len(df) for df in dfs)
