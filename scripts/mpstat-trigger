@@ -6,6 +6,7 @@ LC_ALL=C
 duration=$1
 log_dir=$2
 log_name=$3
+trigger_command="$4"
 
 if [ -z "$duration" ]; then
     duration=8
@@ -21,7 +22,7 @@ if [ -z "$log_name" ]; then
     log_name="mpstat.log"
 fi
 
-while [ -z "$(pgrep -f "iperf3 -u")" ]; do
+while [ -z "$(pgrep -f "$trigger_command")" ]; do
     sleep 0.1
 done
 
