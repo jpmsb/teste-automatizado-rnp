@@ -747,7 +747,16 @@ def plot_vazao_comparativo_por_rodada(test_dir, test_name):
     plt.xlabel("Rodada")
     plt.title(f"{format_label(test_name)} - Vazão média por rodada")
     plt.xticks(x, rounds_sorted_numbers)
+
+    # Verifica se a legenda ficará em cima
+    # dos valores no topo das barras
+    max_height = max(max(client_values), max(server_values))
+    if max_height > 0:
+        plt.ylim(top=max_height * 1.1)
+    else:
+        plt.ylim(top=1)
     plt.legend()
+
     plt.ylim(bottom=0)
     png_path = os.path.join(test_dir, f"{test_name}-vazao_barra_comparativo_por_rodada.png")
     svg_path = os.path.join(test_dir, f"{test_name}-vazao_barra_comparativo_por_rodada.svg")
