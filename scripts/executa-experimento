@@ -210,7 +210,9 @@ verifica_dependencias
 # mata_processos
 # sobe_cenario
 
+echo -e "\n##################################################\n"
 echo -e "\nInício: $(date '+%Y-%m-%d %H:%M:%S')\n" > $dir_este_script/resultados/$apelido/$apelido-experimento.log
+echo -e "Os resultados do experimento serão salvos em: ${verde}${dir_este_script}/resultados/${apelido}${normal}"
 
 for rodada_atual in $(seq 1 $rodadas); do
     roda_teste "$rodada_atual" "$comando_cliente" "$comando_servidor"
