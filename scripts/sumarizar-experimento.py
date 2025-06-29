@@ -33,7 +33,7 @@ def format_throughput(value):
 ##############################
 # FUNÇÕES DE PLOTAGEM (com error bars)
 ##############################
-def plot_cpu_usage_for_test(test_dir, test_name):
+def plot_cpu_usage_for_round(test_dir, test_name):
     rounds = get_round_dirs(test_dir)
     overall_cpu_values = {}  # acumula os valores de cada núcleo em cada rodada
     count = 0
@@ -75,33 +75,33 @@ def plot_cpu_usage_for_test(test_dir, test_name):
             overall_cpu_values.setdefault(core, []).append(value)
         count += 1
 
-    if count > 0:
-        overall_cpu = {}
-        overall_cpu_err = {}
-        for core, values in overall_cpu_values.items():
-            overall_cpu[core] = np.mean(values)
-            overall_cpu_err[core] = 1.96 * np.std(values, ddof=1) / np.sqrt(len(values))
-        cores = list(overall_cpu.keys())
-        valores = [overall_cpu[c] for c in cores]
-        err_values = [overall_cpu_err[c] for c in cores]
-        plt.figure(figsize=(8,6))
-        bars = plt.bar(cores, valores, yerr=err_values, capsize=5)
-        for bar in bars:
-            plt.text(bar.get_x() + bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
-                     ha='center', va='bottom')
-        plt.ylabel("Uso médio de CPU (%)")
-        plt.xlabel("Núcleo")
-        plt.title(f"{format_label(test_name)} - Uso de CPU (Média das Rodadas)")
-        plt.ylim(bottom=0)
-        png_path = os.path.join(test_dir, f"{test_name}-uso_de_cpu_barra.png")
-        svg_path = os.path.join(test_dir, f"{test_name}-uso_de_cpu_barra.svg")
-        plt.savefig(png_path)
-        plt.savefig(svg_path)
-        plt.close()
-        overall_cpu_agg = {core: (overall_cpu[core], overall_cpu_err[core]) for core in overall_cpu}
-        return overall_cpu_agg
-    else:
-        return {}
+    return overall_cpu_values, count
+
+def plot_cpu_usage_for_test(overall_cpu_values, test_dir, test_name):
+    overall_cpu = {}
+    overall_cpu_err = {}
+    for core, values in overall_cpu_values.items():
+        overall_cpu[core] = np.mean(values)
+        overall_cpu_err[core] = 1.96 * np.std(values, ddof=1) / np.sqrt(len(values))
+    cores = list(overall_cpu.keys())
+    valores = [overall_cpu[c] for c in cores]
+    err_values = [overall_cpu_err[c] for c in cores]
+    plt.figure(figsize=(8,6))
+    bars = plt.bar(cores, valores, yerr=err_values, capsize=5)
+    for bar in bars:
+        plt.text(bar.get_x() + bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
+                    ha='center', va='bottom')
+    plt.ylabel("Uso médio de CPU (%)")
+    plt.xlabel("Núcleo")
+    plt.title(f"{format_label(test_name)} - Uso de CPU (Média das Rodadas)")
+    plt.ylim(bottom=0)
+    png_path = os.path.join(test_dir, f"{test_name}-uso_de_cpu_barra.png")
+    svg_path = os.path.join(test_dir, f"{test_name}-uso_de_cpu_barra.svg")
+    plt.savefig(png_path)
+    plt.savefig(svg_path)
+    plt.close()
+    overall_cpu_agg = {core: (overall_cpu[core], overall_cpu_err[core]) for core in overall_cpu}
+    return overall_cpu_agg
 
 def plot_vazao_barra_for_test(test_dir, test_name):
     rounds = get_round_dirs(test_dir)
@@ -925,7 +925,8 @@ def main():
             continue
         
         print(f"\nProcessando {format_label(test)} ...")
-        cpu_overall = plot_cpu_usage_for_test(test_dir, test)
+        overall_cpu_values, round_count = plot_cpu_usage_for_round(test_dir, test)
+        cpu_overall = plot_cpu_usage_for_test(overall_cpu_values, test_dir, test)
         vazao_cli, vazao_srv = plot_vazao_barra_for_test(test_dir, test)
         perda_overall = plot_perda_barra_for_test(test_dir, test)
         
