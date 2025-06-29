@@ -474,11 +474,12 @@ def plot_cpu_comparativo_por_rodada(test_dir, test_name):
     width = 0.8 / len(data)
     plt.figure(figsize=(10,6))
     for i, rodada in enumerate(sorted(data.keys())):
+        round_number = re.search(r'rodada_(\d+)', rodada).group(1)
         cpu_dict = data[rodada]
         err_dict = errors[rodada]
         values = [cpu_dict[core] for core in cores]
         err_values = [err_dict[core] for core in cores]
-        bars = plt.bar(x + i*width, values, width, yerr=err_values, capsize=5, label=rodada)
+        bars = plt.bar(x + i*width, values, width, yerr=err_values, capsize=5, label=f"Rodada {round_number}")
         for bar in bars:
             plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
                      ha='center', va='bottom')
