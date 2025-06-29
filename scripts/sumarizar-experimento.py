@@ -53,9 +53,13 @@ def plot_cpu_usage_for_round(test_dir, test_name):
             err = 1.96 * std / np.sqrt(n)
             cpu_usage_mean[col] = m
             cpu_usage_err[col] = err
-        cores = list(cpu_usage_mean.keys())
-        valores = [cpu_usage_mean[c] for c in cores]
-        err_values = [cpu_usage_err[c] for c in cores]
+
+        cores_from_header = list(cpu_usage_mean.keys())
+        cores = [re.search(r'\d+', c).group() for c in cores_from_header]
+
+        valores = [cpu_usage_mean[c] for c in cores_from_header]
+        err_values = [cpu_usage_err[c] for c in cores_from_header]
+
         plt.figure(figsize=(8,6))
         bars = plt.bar(cores, valores, yerr=err_values, capsize=5)
         for bar in bars:
@@ -83,9 +87,13 @@ def plot_cpu_usage_for_test(overall_cpu_values, test_dir, test_name):
     for core, values in overall_cpu_values.items():
         overall_cpu[core] = np.mean(values)
         overall_cpu_err[core] = 1.96 * np.std(values, ddof=1) / np.sqrt(len(values))
-    cores = list(overall_cpu.keys())
-    valores = [overall_cpu[c] for c in cores]
-    err_values = [overall_cpu_err[c] for c in cores]
+
+    cores_from_header = list(overall_cpu.keys())
+    cores = [re.search(r'\d+', c).group() for c in cores_from_header]
+
+    valores = [overall_cpu[c] for c in cores_from_header]
+    err_values = [overall_cpu_err[c] for c in cores_from_header]
+
     plt.figure(figsize=(8,6))
     bars = plt.bar(cores, valores, yerr=err_values, capsize=5)
     for bar in bars:
@@ -469,16 +477,19 @@ def plot_cpu_comparativo_por_rodada(test_dir, test_name):
         errors[rodada] = err_dict
     if not data:
         return
-    cores = list(next(iter(data.values())).keys())
-    x = np.arange(len(cores))
+
+    cores_from_header = list(next(iter(data.values())).keys())
+    cores = [re.search(r'\d+', c).group() for c in cores_from_header]
+
+    x = np.arange(len(cores_from_header))
     width = 0.8 / len(data)
     plt.figure(figsize=(10,6))
     for i, rodada in enumerate(sorted(data.keys())):
         round_number = re.search(r'rodada_(\d+)', rodada).group(1)
         cpu_dict = data[rodada]
         err_dict = errors[rodada]
-        values = [cpu_dict[core] for core in cores]
-        err_values = [err_dict[core] for core in cores]
+        values = [cpu_dict[core] for core in cores_from_header]
+        err_values = [err_dict[core] for core in cores_from_header]
         bars = plt.bar(x + i*width, values, width, yerr=err_values, capsize=5, label=f"Rodada {round_number}")
         for bar in bars:
             plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
@@ -536,16 +547,19 @@ def plot_cpu_comparativo_por_nucleo(resultados_dir, tests, cpu_aggregate):
         return
     prefix = "-".join(sorted(tests))
     first = next(iter(cpu_aggregate.values()))
-    cores = list(first.keys())
-    x = np.arange(len(cores))
+
+    cores_from_header = list(first.keys())
+    cores = [re.search(r'\d+', c).group() for c in cores_from_header]
+
+    x = np.arange(len(cores_from_header))
     width = 0.8 / len(tests)
     plt.figure(figsize=(10,6))
     for i, test in enumerate(sorted(tests)):
         if test not in cpu_aggregate:
             continue
         cpu_dict = cpu_aggregate[test]
-        values = [cpu_dict.get(core, (0,0))[0] for core in cores]
-        err_values = [cpu_dict.get(core, (0,0))[1] for core in cores]
+        values = [cpu_dict.get(core, (0,0))[0] for core in cores_from_header]
+        err_values = [cpu_dict.get(core, (0,0))[1] for core in cores_from_header]
         bars = plt.bar(x + i*width, values, width, yerr=err_values, capsize=5, label=format_label(test))
         for bar in bars:
             plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
