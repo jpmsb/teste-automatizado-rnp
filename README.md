@@ -40,6 +40,12 @@ Primeiramente, clone o repositório:
 git clone https://github.com/jpmsb/teste-automatizado-rnp
 ```
 
+ou
+
+```bash
+git clone https://git.rnp.br/melhorias-monipe/teste-automatizado
+```
+
 Em seguida, entre no diretório `scripts`:
 
 ```bash
