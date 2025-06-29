@@ -771,48 +771,6 @@ def plot_vazao_servidor_comparativo(resultados_dir, tests, vazao_aggregate):
     plt.savefig(svg_path)
     plt.close()
 
-def plot_cpu_usage_por_teste_comparativo_for_test(test_dir, test_name):
-    rounds = get_round_dirs(test_dir)
-    overall_cpu_values = {}
-    count = 0
-    for rodada in rounds:
-        rodada_path = os.path.join(test_dir, rodada)
-        mpstat_file = os.path.join(rodada_path, f"{rodada}-{test_name}-mpstat.csv")
-        if not os.path.exists(mpstat_file):
-            print(f"Aviso: {mpstat_file} não encontrado.")
-            continue
-        df = pd.read_csv(mpstat_file)
-        n = len(df)
-        for col in df.columns:
-            m = df[col].mean()
-            err = 1.96 * df[col].std() / np.sqrt(n)
-            overall_cpu_values.setdefault(col, []).append((m, err))
-        count += 1
-    if count > 0:
-        overall_cpu_avg = {}
-        overall_cpu_err = {}
-        for core, values in overall_cpu_values.items():
-            means = [v[0] for v in values]
-            overall_cpu_avg[core] = np.mean(means)
-            overall_cpu_err[core] = 1.96 * np.std(means, ddof=1) / np.sqrt(len(means))
-        cores = list(overall_cpu_avg.keys())
-        valores = [overall_cpu_avg[c] for c in cores]
-        err_values = [overall_cpu_err[c] for c in cores]
-        plt.figure(figsize=(8,6))
-        bars = plt.bar(cores, valores, yerr=err_values, capsize=5)
-        for bar in bars:
-            plt.text(bar.get_x() + bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
-                     ha='center', va='bottom')
-        plt.ylabel("Uso médio de CPU (%)")
-        plt.xlabel("Núcleo")
-        plt.title(f"{format_label(test_name)} - Uso de CPU Comparativo (Média das Rodadas)")
-        plt.ylim(bottom=0)
-        png_path = os.path.join(test_dir, f"{test_name}-uso_de_cpu_por_teste_barra_comparativo.png")
-        svg_path = os.path.join(test_dir, f"{test_name}-uso_de_cpu_por_teste_barra_comparativo.svg")
-        plt.savefig(png_path)
-        plt.savefig(svg_path)
-        plt.close()
-
 ##############################
 # FUNÇÕES AGREGADAS – SÉRIES TEMPORAIS (usadas apenas para PERDA)
 ##############################
@@ -977,8 +935,6 @@ def main():
         plot_cpu_comparativo_por_rodada(test_dir, test)
         plot_perda_comparativo_por_rodada(test_dir, test)
         plot_vazao_comparativo_por_rodada(test_dir, test)
-
-        plot_cpu_usage_por_teste_comparativo_for_test(test_dir, test)
 
         print_summarization(test, cpu_overall, vazao_cli, vazao_srv, perda_overall)
 
