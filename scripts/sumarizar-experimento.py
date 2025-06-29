@@ -639,7 +639,7 @@ def plot_perda_comparativo_por_rodada(test_dir, test_name):
                  ha='center', va='bottom', fontsize=9)
     plt.ylabel(ylabel)
     plt.xlabel("Rodada")
-    plt.title(f"{format_label(test_name)} - {title_tipo} Comparativo por Rodada")
+    plt.title(f"{format_label(test_name)} - {title_tipo} por rodada")
     plt.xticks(x, rounds_sorted)
     plt.ylim(bottom=0)
     png_path = os.path.join(test_dir, f"{test_name}-perda_barra_comparativo.png")
