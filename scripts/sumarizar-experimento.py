@@ -703,10 +703,14 @@ def plot_vazao_comparativo_por_rodada(test_dir, test_name):
 
     # Considera apenas rodadas onde ambos existem (cliente e servidor)
     rounds_sorted = sorted(set(data_client.keys()) & set(data_server.keys()))
+
     if not rounds_sorted:
         print("Nenhum dado de vazão encontrado em comum para cliente e servidor.")
         return
+
     x = np.arange(len(rounds_sorted))
+    rounds_sorted_numbers = [re.search(r'rodada_(\d+)', r).group(1) for r in rounds_sorted]
+
     width = 0.35
     client_values = [data_client[r] for r in rounds_sorted]
     server_values = [data_server[r] for r in rounds_sorted]
@@ -724,7 +728,7 @@ def plot_vazao_comparativo_por_rodada(test_dir, test_name):
     plt.ylabel("Vazão Média (Mbps)")
     plt.xlabel("Rodada")
     plt.title(f"{format_label(test_name)} - Vazão média por rodada")
-    plt.xticks(x, rounds_sorted)
+    plt.xticks(x, rounds_sorted_numbers)
     plt.legend()
     plt.ylim(bottom=0)
     png_path = os.path.join(test_dir, f"{test_name}-vazao_barra_comparativo_por_rodada.png")
