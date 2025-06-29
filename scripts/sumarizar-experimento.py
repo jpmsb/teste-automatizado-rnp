@@ -484,7 +484,7 @@ def plot_cpu_comparativo_por_rodada(test_dir, test_name):
                      ha='center', va='bottom')
     plt.ylabel("Uso médio de CPU (%)")
     plt.xlabel("Núcleo")
-    plt.title(f"{format_label(test_name)} - Comparativo de uso de CPU por rodada")
+    plt.title(f"{format_label(test_name)} - Comparativo do uso de CPU por rodada")
     plt.xticks(x + width*(len(data)-1)/2, [format_label(c) for c in cores])
     plt.legend()
     plt.ylim(bottom=0)
