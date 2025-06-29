@@ -616,6 +616,8 @@ def plot_perda_comparativo_por_rodada(test_dir, test_name):
         return
 
     rounds_sorted = sorted(data.keys())
+    rounds_sorted_numbers = [re.search(r'rodada_(\d+)', r).group(1) for r in rounds_sorted]
+
     x = np.arange(len(rounds_sorted))
     values = [data[r] for r in rounds_sorted]
     err_values = [errors[r] for r in rounds_sorted]
@@ -640,7 +642,7 @@ def plot_perda_comparativo_por_rodada(test_dir, test_name):
     plt.ylabel(ylabel)
     plt.xlabel("Rodada")
     plt.title(f"{format_label(test_name)} - {title_tipo} por rodada")
-    plt.xticks(x, rounds_sorted)
+    plt.xticks(x, rounds_sorted_numbers)
     plt.ylim(bottom=0)
     png_path = os.path.join(test_dir, f"{test_name}-perda_barra_comparativo.png")
     svg_path = os.path.join(test_dir, f"{test_name}-perda_barra_comparativo.svg")
