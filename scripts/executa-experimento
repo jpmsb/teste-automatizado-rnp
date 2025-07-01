@@ -81,10 +81,9 @@ roda_teste(){
     local texto_banda=""
     local args_extras=""
 
-    local banda=$(echo $comando_cliente | grep -oP '(?<=-b\s?)(\d+)([MG]?)' | tail -1)
-    local quantidade_fluxos=$(echo $comando_cliente | grep -oP '(?<=-P\s?)(\d+)' | tail -1)
-
-    local duracao=$(echo $comando_cliente | grep -oP '(?<=-t\s?)(\d+)' | tail -1)
+    local banda=$(echo $comando_cliente | awk '{ while (match($0, /-b[ ]*([0-9]+[MG]?)/, a)) { val=a[1]; $0=substr($0, RSTART+RLENGTH) } } END { if(val) print val }')
+    local quantidade_fluxos=$(echo $comando_cliente | awk '{ while (match($0, /-P[ ]*([0-9]+)/, a)) { val=a[1]; $0=substr($0, RSTART+RLENGTH) } } END { if(val) print val }')
+    local duracao=$(echo $comando_cliente | awk '{ while (match($0, /-t[ ]*([0-9]+)/, a)) { val=a[1]; $0=substr($0, RSTART+RLENGTH) } } END { if(val) print val }')
 
     if [ -z "$duracao" ] || [ "$duracao" -eq 0 ]; then
         duracao=10
@@ -92,11 +91,11 @@ roda_teste(){
     fi
 
     # Obtendo o núcleo do servidor através do comando do servidor
-    nucleo_servidor=$(echo $comando_servidor | grep -oP '(?<=-A\s?)(\d+)' | tail -1)
+    nucleo_servidor=$(echo $comando_servidor | awk 'match($0, /-A[ ]*([0-9]+)/, a) { val=a[1] } END { if(val) print val }')
 
     if [ -z "$nucleo_servidor" ]; then
         # Obtendo o núcleo do servidor através do comando do cliente
-        nucleo=$(echo $comando_cliente | grep -oP '(?<=-A\s?)(\d+,\d+)' | tail -1)
+        nucleo=$(echo $comando_cliente | awk 'match($0, /-A[ ]*([0-9]+,[0-9]+)/, a) { val=a[1] } END { if(val) print val }')
 
         if [ -n "$nucleo" ]; then
             if [[ $nucleo =~ ^[0-9]+,[0-9]+$ ]]; then
