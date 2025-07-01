@@ -75,9 +75,9 @@ roda_teste(){
     local rodada_atual="$1"
     local comando_cliente="$2"
     local comando_servidor="$3"
-    local nucleo_servidor=0
-    local nucleo_cliente=0
-    local nucleo=0
+    local nucleo_servidor=""
+    local nucleo_cliente=""
+    local nucleo=""
     local texto_banda=""
     local args_extras=""
 
@@ -90,22 +90,30 @@ roda_teste(){
         args_extras="-t $duracao"
     fi
 
-    # Obtendo o núcleo do servidor através do comando do servidor
-    nucleo_servidor=$(echo $comando_servidor | awk 'match($0, /-A[ ]*([0-9]+)/, a) { val=a[1] } END { if(val) print val }')
+    # Verificando se o comando do cliente possui o núcleo do servidor
+    nucleo=$(echo $comando_cliente | awk 'match($0, /-A[ ]*([0-9]+(,[0-9]+)*)/, a) { val=a[1] } END { if(val) print val }')
+
+    if [ -n "$nucleo" ]; then
+        # Se o núcleo estiver no formato "nucleo_cliente,nucleo_servidor"
+        if [[ $nucleo =~ ^[0-9]+,[0-9]+$ ]]; then
+            nucleo_cliente=$(echo $nucleo | cut -d',' -f1)
+            nucleo_servidor=$(echo $nucleo | cut -d',' -f2)
+
+            texto_nucleo_servidor=" no núcleo ${nucleo_servidor}"
+        elif [[ $nucleo =~ ^[0-9]+$ ]]; then
+            # Se houver apenas um número como valor do argumento -A
+            nucleo_cliente=$nucleo
+        fi
+
+        texto_nucleo_cliente=" no núcleo ${nucleo_cliente}"
+    fi
 
     if [ -z "$nucleo_servidor" ]; then
-        # Obtendo o núcleo do servidor através do comando do cliente
-        nucleo=$(echo $comando_cliente | awk 'match($0, /-A[ ]*([0-9]+,[0-9]+)/, a) { val=a[1] } END { if(val) print val }')
+        # Verifica se o comando do servidor possui o núcleo do servidor
+        nucleo_servidor=$(echo $comando_servidor | awk 'match($0, /-A[ ]*([0-9]+(,[0-9]+)*)/, a) { val=a[1] } END { if(val) print val }')
 
-        if [ -n "$nucleo" ]; then
-            if [[ $nucleo =~ ^[0-9]+,[0-9]+$ ]]; then
-                # Se o núcleo estiver no formato "nucleo_cliente,nucleo_servidor"
-                nucleo_cliente="$(echo $nucleo | cut -d',' -f1)"
-                nucleo_servidor="$(echo $nucleo | cut -d',' -f2)"
-            else
-                # Se houver apenas um número, é o do cliente
-                nucleo_cliente="$nucleo"
-            fi
+        if [ -n "$nucleo_servidor" ]; then
+            texto_nucleo_servidor=" no núcleo ${nucleo_servidor}"
         fi
     fi
 
@@ -119,7 +127,7 @@ roda_teste(){
     echo -e "\n${verde}Executando a rodada $rodada_atual do teste de $duracao segundos${texto_banda}...${normal}\n"
     mkdir -p $dir_este_script/resultados/$apelido/rodada_$rodada_atual
 
-    echo -e "${amarelo}Servidor iniciado no núcleo ${nucleo_servidor}...${normal}"
+    echo -e "${amarelo}Servidor iniciado${texto_nucleo_servidor}...${normal}"
     $comando_servidor -J --one-off > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.json &
 
     sleep 1
@@ -129,7 +137,7 @@ roda_teste(){
     sleep 1
     $comando_cliente $args_extras -J > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.json &
 
-    contagem_regressiva $duracao "${amarelo}Cliente iniciado no núcleo ${nucleo_cliente}...${normal}"
+    contagem_regressiva $duracao "${amarelo}Cliente iniciado${texto_nucleo_cliente}...${normal}"
     wait $(jobs -p)
 
     sleep 1
