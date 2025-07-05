@@ -37,7 +37,7 @@ Dessa forma:
 Primeiramente, clone o repositório:
 
 ```bash
-git clone https://github.com/jpmsb/teste-automatizado-rnp
+git clone https://github.com/jpmsb/teste-automatizado-rnp teste-automatizado
 ```
 
 ou
