@@ -206,6 +206,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         *)
             echo "Argumento inválido: $1"
+            ajuda
             exit 1
             ;;
     esac
