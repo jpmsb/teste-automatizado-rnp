@@ -212,6 +212,33 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+if [ -z "$apelido" ]; then
+    argumentos_faltantes+=("Apelido do teste")
+fi
+
+if [ -z "$comando_cliente" ]; then
+    argumentos_faltantes+=("Comando do cliente")
+fi
+
+if [ -z "$comando_servidor" ]; then
+    argumentos_faltantes+=("Comando do servidor")
+fi
+
+if [ ${#argumentos_faltantes[@]} -gt 0 ]; then
+    if [ ${#argumentos_faltantes[@]} -lt 2 ]; then
+        text_argumentos_faltantes="o seguinte argumento está faltando"
+    else
+        text_argumentos_faltantes="os seguintes argumentos estão faltando"
+    fi
+
+    echo -e "\n${vermelho}Erro: ${text_argumentos_faltantes}:${normal}"
+    for argumento in "${argumentos_faltantes[@]}"; do
+        echo -e "${vermelho}  - $argumento${normal}"
+    done
+    ajuda
+    exit 1
+fi
+
 if [ -z "$duracao" ]; then
     duracao=10
 fi
