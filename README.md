@@ -24,7 +24,7 @@ Dessa forma:
 
 - openSUSE Tumbleweed
     ```bash
-    sudo zypper install --no-recommends python311-pandas python311-matplotlib python311-numpy
+    sudo zypper install --no-recommends python313-pandas python313-matplotlib python313-numpy
     ```
 
 - Debian/Ubuntu
