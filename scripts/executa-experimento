@@ -81,9 +81,12 @@ roda_teste(){
     local texto_banda=""
     local args_extras=""
 
-    local banda=$(echo $comando_cliente | awk '{ while (match($0, /-b[ ]*([0-9]+[MG]?)/, a)) { val=a[1]; $0=substr($0, RSTART+RLENGTH) } } END { if(val) print val }')
-    local quantidade_fluxos=$(echo $comando_cliente | awk '{ while (match($0, /-P[ ]*([0-9]+)/, a)) { val=a[1]; $0=substr($0, RSTART+RLENGTH) } } END { if(val) print val }')
-    local duracao=$(echo $comando_cliente | awk '{ while (match($0, /-t[ ]*([0-9]+)/, a)) { val=a[1]; $0=substr($0, RSTART+RLENGTH) } } END { if(val) print val }')
+    local comando_iperf3_cliente=$(echo $comando_cliente | sed 's/.*\(iperf3 .*\)/\1/')
+    local comando_iperf3_servidor=$(echo $comando_servidor | sed 's/.*\(iperf3 .*\)/\1/')
+
+    local banda=$(echo $comando_iperf3_cliente | awk '{ while (match($0, /-b[ ]*([0-9]+[MG]?)/, a)) { val=a[1]; $0=substr($0, RSTART+RLENGTH) } } END { if(val) print val }')
+    local quantidade_fluxos=$(echo $comando_iperf3_cliente | awk '{ while (match($0, /-P[ ]*([0-9]+)/, a)) { val=a[1]; $0=substr($0, RSTART+RLENGTH) } } END { if(val) print val }')
+    local duracao=$(echo $comando_iperf3_cliente | awk '{ while (match($0, /-t[ ]*([0-9]+)/, a)) { val=a[1]; $0=substr($0, RSTART+RLENGTH) } } END { if(val) print val }')
 
     if [ -z "$duracao" ] || [ "$duracao" -eq 0 ]; then
         duracao=10
@@ -91,7 +94,7 @@ roda_teste(){
     fi
 
     # Verificando se o comando do cliente possui o núcleo do servidor
-    nucleo=$(echo $comando_cliente | awk 'match($0, /-A[ ]*([0-9]+(,[0-9]+)*)/, a) { val=a[1] } END { if(val) print val }')
+    nucleo=$(echo $comando_iperf3_cliente | awk 'match($0, /-A[ ]*([0-9]+(,[0-9]+)*)/, a) { val=a[1] } END { if(val) print val }')
 
     if [ -n "$nucleo" ]; then
         # Se o núcleo estiver no formato "nucleo_cliente,nucleo_servidor"
@@ -110,7 +113,7 @@ roda_teste(){
 
     if [ -z "$nucleo_servidor" ]; then
         # Verifica se o comando do servidor possui o núcleo do servidor
-        nucleo_servidor=$(echo $comando_servidor | awk 'match($0, /-A[ ]*([0-9]+(,[0-9]+)*)/, a) { val=a[1] } END { if(val) print val }')
+        nucleo_servidor=$(echo $comando_iperf3_servidor | awk 'match($0, /-A[ ]*([0-9]+(,[0-9]+)*)/, a) { val=a[1] } END { if(val) print val }')
 
         if [ -n "$nucleo_servidor" ]; then
             texto_nucleo_servidor=" no núcleo ${nucleo_servidor}"
