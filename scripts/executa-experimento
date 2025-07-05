@@ -153,6 +153,18 @@ roda_teste(){
     echo -e "\n##################################################"
 }
 
+ajuda() {
+    echo -e "\nUso: $0 [opções]\n"
+    echo -e "Opções:"
+    echo -e "  -a, --apelido          Apelido para a rodada"
+    echo -e "  -t, --duracao          Duração do teste em segundos"
+    echo -e "  -r, --rodadas          Número de rodadas a serem executadas"
+    echo -e "  -c, --comando-cliente  Comando do cliente iperf3"
+    echo -e "  -s, --comando-servidor Comando do servidor iperf3"
+    echo -e "  --script-inicial       Script a ser executado antes do teste"
+    echo -e "  -h, --ajuda            Exibe esta ajuda"
+}
+
 LANG=C
 LC_ALL=C
 
