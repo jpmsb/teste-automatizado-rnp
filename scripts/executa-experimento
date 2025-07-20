@@ -359,7 +359,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         -r|--rodadas)
-            rodadas=$2
+            argumento_rodadas=$2
             shift 2
             ;;
         --comando-cliente|-c)
@@ -398,6 +398,8 @@ rosa="\033[1;95m"
 normal="\033[0m"
 duracao_padrao=10
 duracao=${duracao_padrao}
+quantidade_rodadas_padrao=2
+rodadas=${quantidade_rodadas_padrao}
 
 if [ -z "$apelido" ]; then
     argumentos_faltantes+=("Apelido do teste")
@@ -439,20 +441,24 @@ if [ -n "$arquivo_receita" ]; then
     fi
 
     conteudo_receita=$(cat "$arquivo_receita")
-    rodadas=$(obtem_rodadas "$conteudo_receita")
-    duracao_receita=$(obtem_tempo_da_rodada "$conteudo_receita")
 
+    rodadas_receita=$(obtem_rodadas "$conteudo_receita")
+    if [ -n "$rodadas_receita" ] && [ "$rodadas_receita" -gt $quantidade_rodadas_padrao ]; then
+        rodadas=$rodadas_receita
+    fi
+
+    duracao_receita=$(obtem_tempo_da_rodada "$conteudo_receita")
     if [ -n "$duracao_receita" ] && [ "$duracao_receita" -gt $duracao_padrao ]; then
         duracao=$duracao_receita
     fi
 fi
 
-if [ -n "$argumento_duracao" ] && [ "$argumento_duracao" -gt $duracao_padrao ]; then
-    duracao=${argumento_duracao}
+if [ -n "$argumento_rodadas" ] && [ "$argumento_rodadas" -gt $quantidade_rodadas_padrao ]; then
+    rodadas=${argumento_rodadas}
 fi
 
-if [ -z "$rodadas" ]; then
-    rodadas=2
+if [ -n "$argumento_duracao" ] && [ "$argumento_duracao" -gt $duracao_padrao ]; then
+    duracao=${argumento_duracao}
 fi
 
 dir_este_script=$(dirname $(realpath $0))
