@@ -2,6 +2,154 @@
 
 # Arquivo: executa-experimento
 
+## Funções que tratam da receita de testes ##
+obtem_rodadas() {
+    local conteudo_receita="$1"
+    local rodadas=0
+
+    while IFS= read -r linha; do
+        if [[ "$linha" =~ ^Rodadas= ]]; then
+            rodadas="${linha#Rodadas=}"
+            break
+        fi
+    done <<< "$conteudo_receita"
+
+    echo "$rodadas"
+}
+
+obtem_tempo_da_rodada() {
+    local conteudo_receita="$1"
+    local tempo_da_rodada=0
+
+    while IFS= read -r linha; do
+        if [[ "$linha" =~ ^TempoDaRodada= ]]; then
+            tempo_da_rodada="${linha#TempoDaRodada=}"
+            break
+        fi
+    done <<< "$conteudo_receita"
+
+    echo "$tempo_da_rodada"
+}
+
+obtem_sumarizador() {
+    local conteudo_receita="$1"
+    local sumarizador=""
+
+    while IFS= read -r linha; do
+        if [[ "$linha" =~ ^Sumarizador= ]]; then
+            sumarizador="${linha#Sumarizador=}"
+            break
+        fi
+    done <<< "$conteudo_receita"
+
+    echo "$sumarizador"
+}
+
+obtem_quantidade_testes() {
+    local conteudo_receita="$1"
+    local quantidade_testes=0
+
+    while IFS= read -r linha; do
+        if [[ "$linha" =~ ^\[Teste\]$ ]]; then
+            ((quantidade_testes++))
+        fi
+    done <<< "$conteudo_receita"
+
+    echo "$quantidade_testes"
+}
+
+obtem_nome_teste() {
+    local conteudo_receita="$1"
+    local numero_teste="$2"
+    local nome_teste=""
+    local contador=0
+    local dentro_do_teste=0
+
+    while IFS= read -r linha; do
+        if [[ "$linha" =~ ^\[Teste\]$ ]]; then
+            ((contador++))
+            dentro_do_teste=1
+            continue
+        fi
+
+        if [[ $dentro_do_teste -eq 1 && "$linha" == Nome=* ]]; then
+            if [[ $contador -eq $numero_teste ]]; then
+                nome_teste="${linha#Nome=}"
+                break
+            fi
+            dentro_do_teste=0
+        fi
+    done <<< "$conteudo_receita"
+    echo "$nome_teste"
+}
+
+obtem_nomes_testes() {
+    local conteudo_receita="$1"
+    local nomes_testes=()
+    local contador=0
+    local dentro_do_teste=0
+
+    while IFS= read -r linha; do
+        if [[ "$linha" =~ ^\[Teste\]$ ]]; then
+            dentro_do_teste=1
+            continue
+        fi
+
+        if [[ $dentro_do_teste -eq 1 && "$linha" == Nome=* ]]; then
+            nomes_testes+=("${linha#Nome=}")
+            dentro_do_teste=0
+        fi
+    done <<< "$conteudo_receita"
+
+    echo "${nomes_testes[@]}" | tr ' ' '\n'
+}
+
+obtem_teste() {
+    local conteudo_receita="$1"
+    local nome_teste_informado="$2"
+    local contador=0
+    local dentro_do_teste=0
+    preparo_antes=""
+    preparo_depois=""
+    comando_cliente=""
+    comando_servidor=""
+
+    while IFS= read -r linha; do
+        # Detecta início de um teste
+        if [[ "$linha" =~ ^\[Teste\]$ ]]; then
+            dentro_do_teste=0
+            continue
+        fi
+
+        if [[ "$linha" == Nome=* ]]; then
+            if [[ "${linha#Nome=}" == "$nome_teste_informado" ]]; then
+                dentro_do_teste=1
+                nome_teste="${linha#Nome=}"
+                continue
+            fi
+        fi
+
+        if [[ $dentro_do_teste -eq 1 ]]; then
+            if [[ "$linha" =~ ^\[Teste\]$ ]]; then
+                break
+            fi
+
+            if [[ "$linha" == Descricao=* ]]; then
+                descricao_teste="${linha#Descricao=}"
+            elif [[ "$linha" == PreparoAntes=* ]]; then
+                preparo_antes="${linha#PreparoAntes=}"
+            elif [[ "$linha" == PreparoDepois=* ]]; then
+                preparo_depois="${linha#PreparoDepois=}"
+            elif [[ "$linha" == ComandoCliente=* ]]; then
+                comando_cliente="${linha#ComandoCliente=}"
+            elif [[ "$linha" == ComandoServidor=* ]]; then
+                comando_servidor="${linha#ComandoServidor=}"
+            fi
+        fi
+    done <<< "$conteudo_receita"
+}
+## Fim das funções que tratam da receita de testes ##
+
 ajustes(){
     echo -e "\n${verde}Aplicando ajustes...${normal}\n"
 }
