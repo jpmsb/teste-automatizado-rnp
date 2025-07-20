@@ -150,6 +150,13 @@ obtem_teste() {
 }
 ## Fim das funções que tratam da receita de testes ##
 
+obtem_duracao_do_comando_iperf(){
+    local comando_cliente="$1"
+    local comando_iperf3_cliente=$(echo $comando_cliente | sed 's/.*\(iperf3 .*\)/\1/')
+
+    echo $comando_iperf3_cliente | awk '{ while (match($0, /-t[ ]*([0-9]+)/, a)) { val=a[1]; $0=substr($0, RSTART+RLENGTH) } } END { if(val) print val }'
+}
+
 ajustes(){
     echo -e "\n${verde}Aplicando ajustes...${normal}\n"
 }
@@ -236,15 +243,6 @@ roda_teste(){
     local banda=$(echo $comando_iperf3_cliente | awk '{ while (match($0, /-b[ ]*([0-9]+[MG]?)/, a)) { val=a[1]; $0=substr($0, RSTART+RLENGTH) } } END { if(val) print val }')
     local quantidade_fluxos=$(echo $comando_iperf3_cliente | awk '{ while (match($0, /-P[ ]*([0-9]+)/, a)) { val=a[1]; $0=substr($0, RSTART+RLENGTH) } } END { if(val) print val }')
 
-    if [ -z "$duracao" ]; then
-        duracao=$(echo $comando_iperf3_cliente | awk '{ while (match($0, /-t[ ]*([0-9]+)/, a)) { val=a[1]; $0=substr($0, RSTART+RLENGTH) } } END { if(val) print val }')
-    fi
-
-    if [ -z "$duracao" ] || [ "$duracao" -eq 0 ]; then
-        duracao=10
-        args_extras="-t $duracao"
-    fi
-
     # Verificando se o comando do cliente possui o núcleo do servidor
     nucleo=$(echo $comando_iperf3_cliente | awk 'match($0, /-A[ ]*([0-9]+(,[0-9]+)*)/, a) { val=a[1] } END { if(val) print val }')
 
@@ -290,7 +288,7 @@ roda_teste(){
     numactl -C 0 $dir_este_script/mpstat-trigger $duracao $dir_este_script/resultados/$apelido/rodada_$rodada_atual rodada_$rodada_atual-${apelido}-mpstat.log 2>/dev/null &
 
     sleep 1
-    $comando_cliente $args_extras -J -i 1 > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.json &
+    $comando_cliente $args_extras -J -i 1 -t $duracao > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.json &
 
     contagem_regressiva $duracao "${amarelo}Cliente iniciado${texto_nucleo_cliente}...${normal}"
     wait $(jobs -p)
@@ -317,17 +315,6 @@ ajuda() {
     echo -e "  -h, --ajuda            Exibe esta ajuda"
 }
 
-LANG=C
-LC_ALL=C
-
-# Cores
-vermelho="\033[1;31m"
-verde="\033[1;32m"
-amarelo="\033[1;33m"
-ciano="\033[1;36m"
-rosa="\033[1;95m"
-normal="\033[0m"
-
 # Processar os argumentos
 while [[ $# -gt 0 ]]; do
     argumento=$1
@@ -337,7 +324,7 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         -t|--duracao)
-            duracao=$2
+            argumento_duracao=$2
             shift 2
             ;;
         -r|--rodadas)
@@ -368,6 +355,19 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+LANG=C
+LC_ALL=C
+
+# Cores
+vermelho="\033[1;31m"
+verde="\033[1;32m"
+amarelo="\033[1;33m"
+ciano="\033[1;36m"
+rosa="\033[1;95m"
+normal="\033[0m"
+duracao_padrao=10
+duracao=${duracao_padrao}
+
 if [ -z "$apelido" ]; then
     argumentos_faltantes+=("Apelido do teste")
 fi
@@ -395,6 +395,12 @@ if [ ${#argumentos_faltantes[@]} -gt 0 ]; then
     exit 1
 fi
 
+# Tenta obter a duração da rodada do comando do cliente
+duracao_comando_cliente=$(obtem_duracao_do_comando_iperf "$comando_cliente")
+if [ -n "$duracao_comando_cliente" ] && [ "$duracao_comando_cliente" -gt $duracao_padrao ]; then
+    duracao=$duracao_comando_cliente
+fi
+
 if [ -n "$arquivo_receita" ]; then
     if [ ! -f "$arquivo_receita" ]; then
         echo -e "${vermelho}Erro: arquivo de receita não encontrado: $arquivo_receita${normal}"
@@ -403,10 +409,15 @@ if [ -n "$arquivo_receita" ]; then
 
     conteudo_receita=$(cat "$arquivo_receita")
     rodadas=$(obtem_rodadas "$conteudo_receita")
+    duracao_receita=$(obtem_tempo_da_rodada "$conteudo_receita")
 
-    if [ -z "$duracao" ]; then
-        duracao=$(obtem_tempo_da_rodada "$conteudo_receita")
+    if [ -n "$duracao_receita" ] && [ "$duracao_receita" -gt $duracao_padrao ]; then
+        duracao=$duracao_receita
     fi
+fi
+
+if [ -n "$argumento_duracao" ] && [ "$argumento_duracao" -gt $duracao_padrao ]; then
+    duracao=${argumento_duracao}
 fi
 
 if [ -z "$rodadas" ]; then
@@ -430,6 +441,7 @@ echo -e "\n##################################################\n"
 echo -e "\nInício: $(date '+%Y-%m-%d %H:%M:%S')\n" > $dir_este_script/resultados/$apelido/$apelido-experimento.log
 echo -e "Os resultados do experimento serão salvos em: ${verde}${dir_este_script}/resultados/${apelido}${normal}"
 echo -e "Quantidade de rodadas: ${verde}${rodadas}${normal}"
+echo -e "Duração de cada rodada: ${verde}${duracao} segundos${normal}"
 
 for rodada_atual in $(seq 1 $rodadas); do
     roda_teste "$rodada_atual" "$comando_cliente" "$comando_servidor" "$duracao"
