@@ -401,6 +401,8 @@ duracao=${duracao_padrao}
 quantidade_rodadas_padrao=2
 rodadas=${quantidade_rodadas_padrao}
 
+verifica_dependencias
+
 if [ -z "$apelido" ]; then
     argumentos_faltantes+=("Apelido do teste")
 fi
@@ -472,7 +474,6 @@ fi
 rm -rf $dir_este_script/resultados/$apelido
 mkdir -p $dir_este_script/resultados/$apelido
 
-verifica_dependencias
 # mata_processos
 # sobe_cenario
 
