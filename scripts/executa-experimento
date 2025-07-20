@@ -204,6 +204,10 @@ while [[ $# -gt 0 ]]; do
             preparo_antes=$2
             shift 2
             ;;
+        --receita)
+            arquivo_receita=$2
+            shift 2
+            ;;
         *)
             echo "Argumento inválido: $1"
             ajuda
