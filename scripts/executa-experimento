@@ -415,8 +415,8 @@ fi
 
 dir_este_script=$(dirname $(realpath $0))
 
-if [ ! -d resultados ]; then
-    mkdir resultados
+if [ ! -d $dir_este_script/resultados ]; then
+    mkdir $dir_este_script/resultados
 fi
 
 rm -rf $dir_este_script/resultados/$apelido
