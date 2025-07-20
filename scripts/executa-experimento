@@ -19,7 +19,7 @@ obtem_rodadas() {
 
 obtem_tempo_da_rodada() {
     local conteudo_receita="$1"
-    local tempo_da_rodada=0
+    local tempo_da_rodada=""
 
     while IFS= read -r linha; do
         if [[ "$linha" =~ ^TempoDaRodada= ]]; then
