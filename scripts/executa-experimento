@@ -223,6 +223,7 @@ roda_teste(){
     local rodada_atual="$1"
     local comando_cliente="$2"
     local comando_servidor="$3"
+    local duracao="$4"
     local nucleo_servidor=""
     local nucleo_cliente=""
     local nucleo=""
@@ -234,7 +235,10 @@ roda_teste(){
 
     local banda=$(echo $comando_iperf3_cliente | awk '{ while (match($0, /-b[ ]*([0-9]+[MG]?)/, a)) { val=a[1]; $0=substr($0, RSTART+RLENGTH) } } END { if(val) print val }')
     local quantidade_fluxos=$(echo $comando_iperf3_cliente | awk '{ while (match($0, /-P[ ]*([0-9]+)/, a)) { val=a[1]; $0=substr($0, RSTART+RLENGTH) } } END { if(val) print val }')
-    local duracao=$(echo $comando_iperf3_cliente | awk '{ while (match($0, /-t[ ]*([0-9]+)/, a)) { val=a[1]; $0=substr($0, RSTART+RLENGTH) } } END { if(val) print val }')
+
+    if [ -z "$duracao" ]; then
+        duracao=$(echo $comando_iperf3_cliente | awk '{ while (match($0, /-t[ ]*([0-9]+)/, a)) { val=a[1]; $0=substr($0, RSTART+RLENGTH) } } END { if(val) print val }')
+    fi
 
     if [ -z "$duracao" ] || [ "$duracao" -eq 0 ]; then
         duracao=10
@@ -391,8 +395,18 @@ if [ ${#argumentos_faltantes[@]} -gt 0 ]; then
     exit 1
 fi
 
-if [ -z "$duracao" ]; then
-    duracao=10
+if [ -n "$arquivo_receita" ]; then
+    if [ ! -f "$arquivo_receita" ]; then
+        echo -e "${vermelho}Erro: arquivo de receita não encontrado: $arquivo_receita${normal}"
+        exit 1
+    fi
+
+    conteudo_receita=$(cat "$arquivo_receita")
+    rodadas=$(obtem_rodadas "$conteudo_receita")
+
+    if [ -z "$duracao" ]; then
+        duracao=$(obtem_tempo_da_rodada "$conteudo_receita")
+    fi
 fi
 
 if [ -z "$rodadas" ]; then
@@ -417,7 +431,7 @@ echo -e "\nInício: $(date '+%Y-%m-%d %H:%M:%S')\n" > $dir_este_script/resultado
 echo -e "Os resultados do experimento serão salvos em: ${verde}${dir_este_script}/resultados/${apelido}${normal}"
 
 for rodada_atual in $(seq 1 $rodadas); do
-    roda_teste "$rodada_atual" "$comando_cliente" "$comando_servidor"
+    roda_teste "$rodada_atual" "$comando_cliente" "$comando_servidor" "$duracao"
 done
 echo
 
