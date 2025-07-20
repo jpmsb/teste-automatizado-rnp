@@ -244,7 +244,7 @@ if [ -z "$duracao" ]; then
 fi
 
 if [ -z "$rodadas" ]; then
-    rodadas=1
+    rodadas=2
 fi
 
 dir_este_script=$(dirname $(realpath $0))
