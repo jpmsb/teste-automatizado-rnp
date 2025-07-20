@@ -3,6 +3,22 @@
 # Arquivo: executa-experimento
 
 ## Funções que tratam da receita de testes ##
+obtem_nome_receita() {
+    local conteudo_receita="$1"
+    local nome_receita=""
+
+    while IFS= read -r linha; do
+        if [[ "$linha" =~ ^Nome= ]]; then
+            nome_receita="${linha#Nome=}"
+            break
+        fi
+    done <<< "$conteudo_receita"
+
+    nome_receita=$(echo "$nome_receita" | sed 's/ \+/_/g' | tr -cd '[:alnum:]_')
+    nome_receita=$(echo "$nome_receita" | sed 's/_\+$//')
+    echo "$nome_receita"
+}
+
 obtem_rodadas() {
     local conteudo_receita="$1"
     local rodadas=0
