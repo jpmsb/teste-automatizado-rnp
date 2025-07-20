@@ -19,6 +19,20 @@ obtem_nome_receita() {
     echo "$nome_receita"
 }
 
+obtem_descricao_receita() {
+    local conteudo_receita="$1"
+    local descricao=""
+
+    while IFS= read -r linha; do
+        if [[ "$linha" =~ ^Descricao= ]]; then
+            descricao="${linha#Descricao=}"
+            break
+        fi
+    done <<< "$conteudo_receita"
+
+    echo "$descricao"
+}
+
 obtem_rodadas() {
     local conteudo_receita="$1"
     local rodadas=0
