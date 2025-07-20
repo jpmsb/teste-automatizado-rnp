@@ -441,6 +441,8 @@ if [ -n "$arquivo_receita" ]; then
     fi
 
     conteudo_receita=$(cat "$arquivo_receita")
+    descricao_receita=$(obtem_descricao_receita "$conteudo_receita")
+    nome_receita=$(obtem_nome_receita "$conteudo_receita")
 
     rodadas_receita=$(obtem_rodadas "$conteudo_receita")
     if [ -n "$rodadas_receita" ] && [ "$rodadas_receita" -gt $quantidade_rodadas_padrao ]; then
