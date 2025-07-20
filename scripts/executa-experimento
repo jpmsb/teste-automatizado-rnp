@@ -200,8 +200,8 @@ while [[ $# -gt 0 ]]; do
             comando_servidor=$2
             shift 2
             ;;
-        --script-inicial)
-            script_inicial=$2
+        --preparo-antes)
+            preparo_antes=$2
             shift 2
             ;;
         *)
