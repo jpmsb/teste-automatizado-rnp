@@ -26,8 +26,6 @@ box(){
 
     done <<< "$cleanedSentence"
 
-    echo "$lineLength"
-
     # Adds two to create additional length
     local horizontalSpacing=$(($lineLength+2))
 
