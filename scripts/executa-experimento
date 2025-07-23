@@ -53,6 +53,8 @@ box(){
 
     echo "$verticalSymbol${horizontalLine//$horizontalSymbol/ }$verticalSymbol"
     echo "$leftBottomCornerSymbol$horizontalLine$rightBottomCornerSymbol"
+
+    export boxWidth=$(( ${#horizontalLine} + 2 ))
 }
 
 ## Funções que tratam da receita de testes ##
