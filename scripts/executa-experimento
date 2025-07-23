@@ -359,7 +359,6 @@ roda_teste(){
         texto_banda=", com banda de ${banda}"
     fi
 
-    echo -e "\n##################################################"
     echo -e "\n${verde}Executando a rodada $rodada_atual do teste de $duracao segundos${texto_banda}...${normal}\n"
     mkdir -p $dir_este_script/resultados/$apelido/rodada_$rodada_atual
 
@@ -383,7 +382,6 @@ roda_teste(){
     $dir_este_script/iperf-json-to-csv $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.json > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.csv 2>/dev/null
 
     cat $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-mpstat.log | $dir_este_script/mpstat_to_csv.py > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-mpstat.csv
-    echo -e "\n##################################################"
 }
 
 ajuda() {
