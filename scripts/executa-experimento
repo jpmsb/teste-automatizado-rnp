@@ -1,6 +1,61 @@
 #!/bin/bash
 
 # Arquivo: executa-experimento
+box(){
+    local LANG="" LC_ALL=""
+    local sentence="$1"
+
+    local ansi_re=$'\033\\[(1;31|1;32|1;33|1;36|1;95|0)m'
+    local cleanedSentence=$(printf '%b' "$sentence" | sed -E $'s/\033\\[[0-9;]*m//g; s/^[[:space:]]*//; s/[[:space:]]*$//')
+
+    local leftUpperCornerSymbol="╔"
+    local rightUpperCornerSymbol="╗"
+    local leftBottomCornerSymbol="╚"
+    local rightBottomCornerSymbol="╝"
+    local horizontalSymbol="═"
+    local verticalSymbol="║"
+
+    # Gets the bigger length
+    local lineLength=0
+    local currentLineLength=0
+    while read -r line; do
+        currentLineLength=${#line}
+        if [ $currentLineLength -gt $lineLength ]; then
+            lineLength=$currentLineLength
+        fi
+
+    done <<< "$cleanedSentence"
+
+    echo "$lineLength"
+
+    # Adds two to create additional length
+    local horizontalSpacing=$(($lineLength+2))
+
+    # Create a horizontal line with horizontalSpacing length
+    for pos in $(seq 1 $horizontalSpacing)
+    do
+        local horizontalLine=$horizontalSymbol$horizontalLine
+    done
+
+    # Draws the box with multiline text inside
+    echo "$leftUpperCornerSymbol$horizontalLine$rightUpperCornerSymbol"
+    echo "$verticalSymbol${horizontalLine//$horizontalSymbol/ }$verticalSymbol"
+
+    local horizontalRightSpacing=0
+    while read -r line; do
+        local additionalSpace=""
+        lineLength=${#line}
+        horizontalRightSpacing=$((horizontalSpacing - lineLength - 2))
+        for pos in $(seq 1 $horizontalRightSpacing); do
+            additionalSpace=" $additionalSpace"
+        done
+
+        echo -e "$verticalSymbol $line $additionalSpace$verticalSymbol"
+    done <<< "$cleanedSentence"
+
+    echo "$verticalSymbol${horizontalLine//$horizontalSymbol/ }$verticalSymbol"
+    echo "$leftBottomCornerSymbol$horizontalLine$rightBottomCornerSymbol"
+}
 
 ## Funções que tratam da receita de testes ##
 obtem_nome_receita() {
