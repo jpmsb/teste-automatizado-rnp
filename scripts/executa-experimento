@@ -42,16 +42,16 @@ box(){
     echo "$verticalSymbol${horizontalLine//$horizontalSymbol/ }$verticalSymbol"
 
     local horizontalRightSpacing=0
-    while read -r line; do
+    while read -r line && read -r cleanedLine <&3; do
         local additionalSpace=""
-        lineLength=${#line}
+        lineLength=${#cleanedLine}
         horizontalRightSpacing=$((horizontalSpacing - lineLength - 2))
         for pos in $(seq 1 $horizontalRightSpacing); do
             additionalSpace=" $additionalSpace"
         done
 
         echo -e "$verticalSymbol $line $additionalSpace$verticalSymbol"
-    done <<< "$cleanedSentence"
+    done < <(printf '%s\n' "$sentence") 3< <(printf '%s\n' "$cleanedSentence")
 
     echo "$verticalSymbol${horizontalLine//$horizontalSymbol/ }$verticalSymbol"
     echo "$leftBottomCornerSymbol$horizontalLine$rightBottomCornerSymbol"
