@@ -491,6 +491,14 @@ if [ -n "$duracao_comando_cliente" ] && [ "$duracao_comando_cliente" -gt $duraca
     duracao=$duracao_comando_cliente
 fi
 
+if [ -n "$argumento_rodadas" ] && [ "$argumento_rodadas" -gt $quantidade_rodadas_padrao ]; then
+    rodadas=${argumento_rodadas}
+fi
+
+if [ -n "$argumento_duracao" ] && [ "$argumento_duracao" -gt $duracao_padrao ]; then
+    duracao=${argumento_duracao}
+fi
+
 if [ -n "$arquivo_receita" ]; then
     if [ ! -f "$arquivo_receita" ]; then
         echo -e "${vermelho}Erro: arquivo de receita não encontrado: $arquivo_receita${normal}"
@@ -501,14 +509,18 @@ if [ -n "$arquivo_receita" ]; then
     descricao_receita=$(obtem_descricao_receita "$conteudo_receita")
     nome_receita=$(obtem_nome_receita "$conteudo_receita")
 
-    rodadas_receita=$(obtem_rodadas "$conteudo_receita")
-    if [ -n "$rodadas_receita" ] && [ "$rodadas_receita" -gt $quantidade_rodadas_padrao ]; then
-        rodadas=$rodadas_receita
+    if [ -z "$argumento_rodadas" ]; then
+        rodadas_receita=$(obtem_rodadas "$conteudo_receita")
+        if [ -n "$rodadas_receita" ] && [ "$rodadas_receita" -gt $quantidade_rodadas_padrao ]; then
+            rodadas=$rodadas_receita
+        fi
     fi
 
-    duracao_receita=$(obtem_tempo_da_rodada "$conteudo_receita")
-    if [ -n "$duracao_receita" ] && [ "$duracao_receita" -gt $duracao_padrao ]; then
-        duracao=$duracao_receita
+    if [ -z "$argumento_duracao" ]; then
+        duracao_receita=$(obtem_tempo_da_rodada "$conteudo_receita")
+        if [ -n "$duracao_receita" ] && [ "$duracao_receita" -gt $duracao_padrao ]; then
+            duracao=$duracao_receita
+        fi
     fi
 
     testes_receita=$(obtem_nomes_testes "$conteudo_receita")
@@ -526,15 +538,9 @@ if [ -n "$arquivo_receita" ]; then
 
     echo
     box "Nome da receita: ${verde}${nome_receita}${normal}
-         Descrição da receita: ${verde}${descricao_receita}${normal}"
-fi
-
-if [ -n "$argumento_rodadas" ] && [ "$argumento_rodadas" -gt $quantidade_rodadas_padrao ]; then
-    rodadas=${argumento_rodadas}
-fi
-
-if [ -n "$argumento_duracao" ] && [ "$argumento_duracao" -gt $duracao_padrao ]; then
-    duracao=${argumento_duracao}
+         Descrição da receita: ${verde}${descricao_receita}${normal}
+         Quantidade de rodadas: ${verde}${rodadas}${normal}
+         Duração de cada rodada: ${verde}${duracao} segundos${normal}"
 fi
 
 dir_este_script=$(dirname $(realpath $0))
@@ -544,10 +550,15 @@ if [ ! -d $dir_este_script/resultados ]; then
 fi
 
 # Cria a linha horizontal
+if [ -z "$boxWidth" ]; then
+    boxWidth=50
+fi
+
 for ((i = 0; i < boxWidth; i++)); do
     linha_horizontal+="#"
 done
 
+# Executa um ou mais testes
 for teste in "${testes[@]}"; do
     apelido=$(echo "$teste" | tr '[:upper:]' '[:lower:]' | sed 's/ /_/g')
     rm -rf $dir_este_script/resultados/$apelido
@@ -560,8 +571,11 @@ for teste in "${testes[@]}"; do
     echo -e "\nInício: $(date '+%Y-%m-%d %H:%M:%S')\n" > $dir_este_script/resultados/$apelido/$apelido-experimento.log
     echo -e "Os resultados do experimento serão salvos em: ${verde}${dir_este_script}/resultados/${apelido}${normal}"
     echo -e "Nome do teste: ${verde}${teste}${normal}"
-    echo -e "Quantidade de rodadas: ${verde}${rodadas}${normal}"
-    echo -e "Duração de cada rodada: ${verde}${duracao} segundos${normal}"
+
+    if [ -z "$arquivo_receita" ]; then
+        echo -e "Quantidade de rodadas: ${verde}${rodadas}${normal}"
+        echo -e "Duração de cada rodada: ${verde}${duracao} segundos${normal}"
+    fi
 
     for rodada_atual in $(seq 1 $rodadas); do
         echo -e "\n${linha_horizontal}"
