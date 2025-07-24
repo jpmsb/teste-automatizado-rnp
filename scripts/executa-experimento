@@ -192,46 +192,54 @@ obtem_nomes_testes() {
 obtem_teste() {
     local conteudo_receita="$1"
     local nome_teste_informado="$2"
-    local contador=0
     local dentro_do_teste=0
     preparo_antes=""
     preparo_depois=""
     comando_cliente=""
     comando_servidor=""
+    descricao_teste=""
 
-    while IFS= read -r linha; do
-        # Detecta início de um teste
-        if [[ "$linha" =~ ^\[Teste\]$ ]]; then
+    local lines
+    readarray -t lines <<< "$conteudo_receita"
+
+    local linha valor
+    for linha in "${lines[@]}"; do
+        # detecta início de bloco [Teste]
+        if [[ "$linha" == "[Teste]" ]]; then
             dentro_do_teste=0
             continue
         fi
 
+        # identifica nome do teste
         if [[ "$linha" == Nome=* ]]; then
-            if [[ "${linha#Nome=}" == "$nome_teste_informado" ]]; then
+            valor="${linha#Nome=}"
+            if [[ "$valor" == "$nome_teste_informado" ]]; then
                 dentro_do_teste=1
-                nome_teste="${linha#Nome=}"
-                continue
             fi
+            continue
         fi
 
-        if [[ $dentro_do_teste -eq 1 ]]; then
-            if [[ "$linha" =~ ^\[Teste\]$ ]]; then
-                break
-            fi
-
-            if [[ "$linha" == Descricao=* ]]; then
-                descricao_teste="${linha#Descricao=}"
-            elif [[ "$linha" == PreparoAntes=* ]]; then
-                preparo_antes="${linha#PreparoAntes=}"
-            elif [[ "$linha" == PreparoDepois=* ]]; then
-                preparo_depois="${linha#PreparoDepois=}"
-            elif [[ "$linha" == ComandoCliente=* ]]; then
-                comando_cliente="${linha#ComandoCliente=}"
-            elif [[ "$linha" == ComandoServidor=* ]]; then
-                comando_servidor="${linha#ComandoServidor=}"
-            fi
+        # se estamos dentro do teste certo, extrai os campos
+        if (( dentro_do_teste )); then
+            case "$linha" in
+                Descricao=*)
+                    descricao_teste="${linha#Descricao=}"
+                    ;;
+                PreparoAntes=*)
+                    preparo_antes="${linha#PreparoAntes=}"
+                    ;;
+                PreparoDepois=*)
+                    preparo_depois="${linha#PreparoDepois=}"
+                    ;;
+                ComandoCliente=*)
+                    comando_cliente="${linha#ComandoCliente=}"
+                    ;;
+                ComandoServidor=*)
+                    comando_servidor="${linha#ComandoServidor=}"
+                    ;;
+            esac
         fi
-    done <<< "$conteudo_receita"
+    done
 }
 ## Fim das funções que tratam da receita de testes ##
 
