@@ -577,8 +577,10 @@ for teste in "${testes[@]}"; do
 
     echo -e "\n${linha_horizontal}\n"
     echo -e "\nInício: $(date '+%Y-%m-%d %H:%M:%S')\n" > $dir_este_script/resultados/$apelido/$apelido-experimento.log
-    echo -e "Os resultados do experimento serão salvos em: ${verde}${dir_este_script}/resultados/${apelido}${normal}"
+    echo -e "Os resultados do experimento serão salvos em ↓:"
+    echo -e "${verde}${dir_este_script}/resultados/${apelido}${normal}\n"
     echo -e "Nome do teste: ${verde}${teste}${normal}"
+    echo -e "Descrição do teste: ${verde}${descricao_teste}${normal}"
 
     if [ -z "$arquivo_receita" ]; then
         echo -e "Quantidade de rodadas: ${verde}${rodadas}${normal}"
