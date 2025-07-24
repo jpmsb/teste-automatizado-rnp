@@ -583,7 +583,10 @@ for teste in "${testes[@]}"; do
     echo -e "Os resultados do experimento serão salvos em ↓:"
     echo -e "${verde}${dir_este_script}/resultados/${apelido}${normal}\n"
     echo -e "Nome do teste: ${verde}${teste}${normal}"
-    echo -e "Descrição do teste: ${verde}${descricao_teste}${normal}"
+
+    if [ -n "$descricao_teste" ]; then
+        echo -e "Descrição do teste: ${verde}${descricao_teste}${normal}"
+    fi
 
     if [ -z "$arquivo_receita" ]; then
         echo -e "Quantidade de rodadas: ${verde}${rodadas}${normal}"
