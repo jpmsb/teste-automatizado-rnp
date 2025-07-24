@@ -365,4 +365,8 @@ Abaixo, é explicado o que cada seção e parâmetro da receita significa:
     - [obrigatório] `ComandoCliente`: comando do `iperf3` do cliente;
     - [obrigatório] `ComandoServidor`: comando do `iperf3` do servidor.
 
-Para comentar algum parâmetro, basta utilizar o caractere `;` no início da linha.
+Para comentar algum parâmetro, basta utilizar o caractere `;` no início da linha. Além disso, é possível sobrescrever os parâmetros `TempoDaRodada` e `Rodadas` usando os argumentos `-t` e `-r`, respectivamente, diretamente na rotina `executa-experimento`:
+
+```bash
+./executa-experimento -r 5 -t 15 --receita receita
+```
