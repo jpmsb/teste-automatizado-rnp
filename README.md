@@ -72,6 +72,8 @@ Abaixo, é demonstrado como utilizar as rotinas:
 
     - [opcional] `-r`, `--rodadas`: quantidade de repetições do teste. Quando não informado, o valor padrão é 1.
 
+    - [opcional] `--receita`: caminho para o arquivo de receita onde os testes e a as configurações de execução estão definidos.
+
     Exemplo de uso:
 
     ```bash
@@ -305,3 +307,62 @@ Abaixo, é demonstrado como utilizar as rotinas:
 
             - Média das rodadas do teste 1:
                 ![perda_teste_1](resultados-exemplo/teste_1/teste_1-perda_temporal.png)
+
+
+### Utilização da receita de testes
+
+Para facilitar a execução de múltiplos testes de forma automatizada, é possível utilizar uma receita contendo a especificação de cada teste, além da definição dos parâmetros de execução de todo o experimento.
+
+Abaixo, está um exemplo do formato da receita de testes:
+
+```ini
+[Receita]
+Nome=Teste Receita
+Descricao=Experimento de teste com receita
+Rodadas=3
+TempoDaRodada=15
+Sumarizador=./sumarizar-experimento.py -d resultados/ -t "teste_receita_1" -t "teste_receita_2" -t "teste_receita_3"
+
+[Teste]
+Nome=teste_receita_1
+Descricao=Teste A
+PreparoAntes=script_preparo_antes_A
+PreparoDepois=script_preparo_depois_A
+ComandoCliente=iperf3 -c cliente -A 3,7 -w 8m -t 10 -P 2
+ComandoServidor=iperf3 -s -A 1
+
+[Teste]
+Nome=teste_receita_2
+Descricao=Teste B
+PreparoAntes=script_preparo_antes_B
+PreparoDepois=script_preparo_depois_B
+ComandoCliente=iperf3 -c cliente --skip-rx-copy -A 3,8 -w 8m -t 10
+ComandoServidor=iperf3 -s
+
+[Teste]
+Nome=teste_receita_3
+Descricao=Teste C
+PreparoAntes=script_preparo_antes_C
+PreparoDepois=script_preparo_depois_C
+ComandoCliente=iperf3 -c cliente --skip-rx-copy -A 3,9 -w 8m -t 10 -P 2
+ComandoServidor=iperf3 -s -A 1
+```
+
+Abaixo, é explicado o que cada seção e parâmetro da receita significa:
+
+- Seção `[Receita]`:
+    - [obrigatório] `Nome`: nome da receita;
+    - [obrigatório] `Descricao`: descrição da receita;
+    - [opcional] `Rodadas`: número de rodadas que cada teste será executado;
+    - [opcional] `TempoDaRodada`: tempo de execução, em segundos, de cada rodada. Quando não informado, o valor padrão é 10 segundos;
+    - [opcional] `Sumarizador`: comando que será executado após a execução de todos os testes. Deverá ser o exato comando utilizado
+
+- Seção `[Teste]`:
+    - [obrigatório] `Nome`: nome do teste;
+    - [opcional] `Descricao`: descrição do teste;
+    - [opcional] `PreparoAntes`: comando que será executado antes da execução do teste. Pode ser utilizado para preparar o ambiente, como reiniciar serviços, limpar caches, etc;
+    - [opcional] `PreparoDepois`: comando que será executado após a execução do teste. Pode ser utilizado para limpar o ambiente, como reiniciar serviços, limpar caches, etc;
+    - [obrigatório] `ComandoCliente`: comando do `iperf3` do cliente;
+    - [obrigatório] `ComandoServidor`: comando do `iperf3` do servidor.
+
+Para comentar algum parâmetro, basta utilizar o caractere `;` no início da linha.
