@@ -572,6 +572,9 @@ for teste in "${testes[@]}"; do
     rm -rf $dir_este_script/resultados/$apelido
     mkdir -p $dir_este_script/resultados/$apelido
 
+    if [ -n "$arquivo_receita" ]; then
+        obtem_teste "$conteudo_receita" "$teste"
+    fi
     # mata_processos
     # sobe_cenario
 
