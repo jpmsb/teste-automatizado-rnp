@@ -595,11 +595,25 @@ for teste in "${testes[@]}"; do
         echo -e "Duração de cada rodada: ${verde}${duracao} segundos${normal}"
     fi
 
+    if [ -n "$preparo_antes" ]; then
+        echo -e "\nPreparando o ambiente antes do teste usando a rotina abaixo ↓:"
+        echo -e "${verde}${preparo_antes}${normal}"
+        bash $preparo_antes
+    fi
+
     for rodada_atual in $(seq 1 $rodadas); do
         echo -e "\n${linha_horizontal}"
         roda_teste "$rodada_atual" "$comando_cliente" "$comando_servidor" "$duracao"
         echo -e "\n${linha_horizontal}"
     done
+
+    if [ -n "$preparo_depois" ]; then
+        echo -e "\nPreparando o ambiente após o teste usando a rotina abaixo ↓:"
+        echo -e "${verde}${preparo_depois}${normal}"
+        bash $preparo_depois
+        echo -e "\n${linha_horizontal}\n"
+    fi
+
     echo
 done
 # mata_processos
