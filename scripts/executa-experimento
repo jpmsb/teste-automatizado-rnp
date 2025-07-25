@@ -598,7 +598,7 @@ for teste in "${testes[@]}"; do
     if [ -n "$preparo_antes" ]; then
         echo -e "\nPreparando o ambiente antes do teste usando a rotina abaixo ↓:"
         echo -e "${verde}${preparo_antes}${normal}"
-        bash $preparo_antes
+        bash $preparo_antes > $dir_este_script/resultados/$apelido/$apelido-preparo_antes.log 2>&1
     fi
 
     for rodada_atual in $(seq 1 $rodadas); do
@@ -610,7 +610,7 @@ for teste in "${testes[@]}"; do
     if [ -n "$preparo_depois" ]; then
         echo -e "\nPreparando o ambiente após o teste usando a rotina abaixo ↓:"
         echo -e "${verde}${preparo_depois}${normal}"
-        bash $preparo_depois
+        bash $preparo_depois > $dir_este_script/resultados/$apelido/$apelido-preparo_depois.log 2>&1
         echo -e "\n${linha_horizontal}\n"
     fi
 
