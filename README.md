@@ -352,7 +352,7 @@ Abaixo, é explicado o que cada seção e parâmetro da receita significa:
 
 - Seção `[Receita]`:
     - [obrigatório] `Nome`: nome da receita;
-    - [obrigatório] `Descricao`: descrição da receita;
+    - [opcional] `Descricao`: descrição da receita;
     - [opcional] `Rodadas`: número de rodadas que cada teste será executado;
     - [opcional] `TempoDaRodada`: tempo de execução, em segundos, de cada rodada. Quando não informado, o valor padrão é 10 segundos;
     - [opcional] `Sumarizador`: comando que será executado após a execução de todos os testes. Deverá ser o exato comando utilizado
