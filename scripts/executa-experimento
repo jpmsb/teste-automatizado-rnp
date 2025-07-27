@@ -553,6 +553,10 @@ if [ -n "$arquivo_receita" ]; then
     conteudo_receita=$(cat "$arquivo_receita")
     descricao_receita=$(obtem_descricao_receita "$conteudo_receita")
     nome_receita=$(obtem_nome_receita "$conteudo_receita")
+    if [ -z "$nome_receita" ]; then
+        echo -e "\n${vermelho}Erro: a receita não possui um nome!${normal}\n"
+        exit 1
+    fi
 
     if [ -z "$argumento_rodadas" ]; then
         rodadas_receita=$(obtem_rodadas "$conteudo_receita")
