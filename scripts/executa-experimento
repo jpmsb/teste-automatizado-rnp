@@ -3,7 +3,7 @@
 # Arquivo: executa-experimento
 box(){
     local LANG="" LC_ALL=""
-    local sentence="$1"
+    local sentence="$(printf "%b\n" "$@")"
 
     local ansi_re=$'\033\\[(1;31|1;32|1;33|1;36|1;95|0)m'
     local cleanedSentence=$(printf '%b' "$sentence" | sed -E $'s/\033\\[[0-9;]*m//g; s/^[[:space:]]*//; s/[[:space:]]*$//')
