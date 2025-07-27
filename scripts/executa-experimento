@@ -61,16 +61,34 @@ box(){
 obtem_nome_receita() {
     local conteudo_receita="$1"
     local nome_receita=""
+    local dentro_receita=false
 
     while IFS= read -r linha; do
-        if [[ "$linha" =~ ^Nome= ]]; then
+        linha="${linha#"${linha%%[![:space:]]*}"}"
+        linha="${linha%"${linha##*[![:space:]]}"}"
+
+        # Detecta início da seção [Receita]
+        if [[ "$linha" =~ ^\[Receita\]$ ]]; then
+            dentro_receita=true
+            continue
+        fi
+
+        # Sai ao entrar em outra seção
+        if [[ "$linha" =~ ^\[.*\]$ ]] && $dentro_receita; then
+            break
+        fi
+
+        # Se está dentro da seção [Receita] e encontrou Nome=
+        if [[ $dentro_receita && "$linha" =~ ^Nome= ]]; then
             nome_receita="${linha#Nome=}"
             break
         fi
     done <<< "$conteudo_receita"
 
+    # Sanitização do nome
     nome_receita=$(echo "$nome_receita" | sed 's/ \+/_/g' | tr -cd '[:alnum:]_')
     nome_receita=$(echo "$nome_receita" | sed 's/_\+$//')
+
     echo "$nome_receita"
 }
 
