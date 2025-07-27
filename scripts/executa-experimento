@@ -95,9 +95,26 @@ obtem_nome_receita() {
 obtem_descricao_receita() {
     local conteudo_receita="$1"
     local descricao=""
+    local dentro_receita=false
 
     while IFS= read -r linha; do
-        if [[ "$linha" =~ ^Descricao= ]]; then
+        # Remove espaços extras no início/fim da linha
+        linha="${linha#"${linha%%[![:space:]]*}"}"
+        linha="${linha%"${linha##*[![:space:]]}"}"
+
+        # Detecta início da seção [Receita]
+        if [[ "$linha" =~ ^\[Receita\]$ ]]; then
+            dentro_receita=true
+            continue
+        fi
+
+        # Sai ao entrar em outra seção
+        if [[ "$linha" =~ ^\[.*\]$ ]] && $dentro_receita; then
+            break
+        fi
+
+        # Se está dentro da seção [Receita] e encontrou Descricao=
+        if [[ $dentro_receita && "$linha" =~ ^Descricao= ]]; then
             descricao="${linha#Descricao=}"
             break
         fi
