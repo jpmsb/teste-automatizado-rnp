@@ -545,17 +545,26 @@ if [ -n "$argumento_duracao" ] && [ "$argumento_duracao" -gt $duracao_padrao ]; 
 fi
 
 if [ -n "$arquivo_receita" ]; then
+    texto_inicial=()
+
     if [ ! -f "$arquivo_receita" ]; then
         echo -e "${vermelho}Erro: arquivo de receita não encontrado: $arquivo_receita${normal}"
         exit 1
     fi
 
     conteudo_receita=$(cat "$arquivo_receita")
-    descricao_receita=$(obtem_descricao_receita "$conteudo_receita")
+
     nome_receita=$(obtem_nome_receita "$conteudo_receita")
     if [ -z "$nome_receita" ]; then
         echo -e "\n${vermelho}Erro: a receita não possui um nome!${normal}\n"
         exit 1
+    else
+        texto_inicial+="Nome da receita: ${verde}${nome_receita}${normal}\n"
+    fi
+
+    descricao_receita=$(obtem_descricao_receita "$conteudo_receita")
+    if [ -n "$descricao_receita" ]; then
+        texto_inicial+="Descrição da receita: ${verde}${descricao_receita}${normal}\n"
     fi
 
     if [ -z "$argumento_rodadas" ]; then
@@ -585,11 +594,11 @@ if [ -n "$arquivo_receita" ]; then
         done
     fi
 
+    texto_inicial+="Quantidade de rodadas: ${verde}${rodadas}${normal}\n"
+    texto_inicial+="Duração de cada rodada: ${verde}${duracao} segundos${normal}\n"
+
     echo
-    box "Nome da receita: ${verde}${nome_receita}${normal}
-         Descrição da receita: ${verde}${descricao_receita}${normal}
-         Quantidade de rodadas: ${verde}${rodadas}${normal}
-         Duração de cada rodada: ${verde}${duracao} segundos${normal}"
+    box "${texto_inicial[@]}"
 fi
 
 dir_este_script=$(dirname $(realpath $0))
