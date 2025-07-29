@@ -360,6 +360,7 @@ roda_teste(){
     local comando_servidor="$3"
     local duracao="$4"
     local dir_resultados_teste="$5"
+    local apelido="$6"
     local nucleo_servidor=""
     local nucleo_cliente=""
     local nucleo=""
@@ -656,7 +657,7 @@ for teste in "${testes[@]}"; do
 
     for rodada_atual in $(seq 1 $rodadas); do
         echo -e "\n${linha_horizontal}"
-        roda_teste "$rodada_atual" "$comando_cliente" "$comando_servidor" "$duracao" "$dir_resultados_teste"
+        roda_teste "$rodada_atual" "$comando_cliente" "$comando_servidor" "$duracao" "$dir_resultados_teste" "$apelido"
         echo -e "\n${linha_horizontal}"
     done
 
