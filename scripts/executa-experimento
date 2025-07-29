@@ -359,6 +359,7 @@ roda_teste(){
     local comando_cliente="$2"
     local comando_servidor="$3"
     local duracao="$4"
+    local dir_resultados_teste="$5"
     local nucleo_servidor=""
     local nucleo_cliente=""
     local nucleo=""
@@ -405,28 +406,28 @@ roda_teste(){
     fi
 
     echo -e "\n${verde}Executando a rodada $rodada_atual do teste de $duracao segundos${texto_banda}...${normal}\n"
-    mkdir -p $dir_este_script/resultados/$apelido/rodada_$rodada_atual
+    mkdir -p $dir_resultados_teste/rodada_$rodada_atual
 
     echo -e "${amarelo}Servidor iniciado${texto_nucleo_servidor}...${normal}"
-    $comando_servidor -J --one-off -i 1 > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.json &
+    $comando_servidor -J --one-off -i 1 > $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.json &
 
     sleep 1
     echo -e "${amarelo}Preparando o mpstat...${normal}"
-    numactl -C 0 $dir_este_script/mpstat-trigger $duracao $dir_este_script/resultados/$apelido/rodada_$rodada_atual rodada_$rodada_atual-${apelido}-mpstat.log 2>/dev/null &
+    numactl -C 0 $dir_este_script/mpstat-trigger $duracao $dir_resultados_teste/rodada_$rodada_atual rodada_$rodada_atual-${apelido}-mpstat.log 2>/dev/null &
 
     sleep 1
-    $comando_cliente $args_extras -J -i 1 -t $duracao > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.json &
+    $comando_cliente $args_extras -J -i 1 -t $duracao > $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.json &
 
     contagem_regressiva $duracao "${amarelo}Cliente iniciado${texto_nucleo_cliente}...${normal}"
     wait $(jobs -p)
 
     sleep 1
     # Processa os resultados para CSV
-    $dir_este_script/iperf-json-to-csv $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.json > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.csv 2>/dev/null
+    $dir_este_script/iperf-json-to-csv $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.json > $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.csv 2>/dev/null
 
-    $dir_este_script/iperf-json-to-csv $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.json > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.csv 2>/dev/null
+    $dir_este_script/iperf-json-to-csv $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.json > $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.csv 2>/dev/null
 
-    cat $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-mpstat.log | $dir_este_script/mpstat_to_csv.py > $dir_este_script/resultados/$apelido/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-mpstat.csv
+    cat $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-mpstat.log | $dir_este_script/mpstat_to_csv.py > $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-mpstat.csv
 }
 
 ajuda() {
@@ -498,6 +499,8 @@ quantidade_rodadas_padrao=2
 rodadas=${quantidade_rodadas_padrao}
 testes=()
 testes+=($apelido)
+dir_este_script=$(dirname $(realpath $0))
+dir_resultados="$dir_este_script/resultados"
 
 verifica_dependencias
 
@@ -597,14 +600,14 @@ if [ -n "$arquivo_receita" ]; then
     texto_inicial+="Quantidade de rodadas: ${verde}${rodadas}${normal}\n"
     texto_inicial+="Duração de cada rodada: ${verde}${duracao} segundos${normal}\n"
 
+    dir_resultados="$dir_resultados/$nome_receita"
+
     echo
     box "${texto_inicial[@]}"
 fi
 
-dir_este_script=$(dirname $(realpath $0))
-
-if [ ! -d $dir_este_script/resultados ]; then
-    mkdir $dir_este_script/resultados
+if [ ! -d $dir_resultados ]; then
+    mkdir $dir_resultados
 fi
 
 # Cria a linha horizontal
@@ -619,8 +622,10 @@ done
 # Executa um ou mais testes
 for teste in "${testes[@]}"; do
     apelido=$(echo "$teste" | tr '[:upper:]' '[:lower:]' | sed 's/ /_/g')
-    rm -rf $dir_este_script/resultados/$apelido
-    mkdir -p $dir_este_script/resultados/$apelido
+    dir_resultados_teste="$dir_resultados/$apelido"
+
+    rm -rf $dir_resultados_teste
+    mkdir -p $dir_resultados_teste
 
     if [ -n "$arquivo_receita" ]; then
         obtem_teste "$conteudo_receita" "$teste"
@@ -629,9 +634,9 @@ for teste in "${testes[@]}"; do
     # sobe_cenario
 
     echo -e "\n${linha_horizontal}\n"
-    echo -e "\nInício: $(date '+%Y-%m-%d %H:%M:%S')\n" > $dir_este_script/resultados/$apelido/$apelido-experimento.log
+    echo -e "\nInício: $(date '+%Y-%m-%d %H:%M:%S')\n" > $dir_resultados_teste/$apelido-experimento.log
     echo -e "Os resultados do experimento serão salvos em ↓:"
-    echo -e "${verde}${dir_este_script}/resultados/${apelido}${normal}\n"
+    echo -e "${verde}$dir_resultados_teste${normal}\n"
     echo -e "Nome do teste: ${verde}${teste}${normal}"
 
     if [ -n "$descricao_teste" ]; then
@@ -646,19 +651,19 @@ for teste in "${testes[@]}"; do
     if [ -n "$preparo_antes" ]; then
         echo -e "\nPreparando o ambiente antes do teste usando a rotina abaixo ↓:"
         echo -e "${verde}${preparo_antes}${normal}"
-        bash $preparo_antes > $dir_este_script/resultados/$apelido/$apelido-preparo_antes.log 2>&1
+        bash $preparo_antes > $dir_resultados_teste/$apelido-preparo_antes.log 2>&1
     fi
 
     for rodada_atual in $(seq 1 $rodadas); do
         echo -e "\n${linha_horizontal}"
-        roda_teste "$rodada_atual" "$comando_cliente" "$comando_servidor" "$duracao"
+        roda_teste "$rodada_atual" "$comando_cliente" "$comando_servidor" "$duracao" "$dir_resultados_teste"
         echo -e "\n${linha_horizontal}"
     done
 
     if [ -n "$preparo_depois" ]; then
         echo -e "\nPreparando o ambiente após o teste usando a rotina abaixo ↓:"
         echo -e "${verde}${preparo_depois}${normal}"
-        bash $preparo_depois > $dir_este_script/resultados/$apelido/$apelido-preparo_depois.log 2>&1
+        bash $preparo_depois > $dir_resultados_teste/$apelido-preparo_depois.log 2>&1
         echo -e "\n${linha_horizontal}\n"
     fi
 
@@ -666,4 +671,4 @@ for teste in "${testes[@]}"; do
 done
 # mata_processos
 
-echo -e "\nFim: $(date '+%Y-%m-%d %H:%M:%S')" > $dir_este_script/resultados/$apelido/$apelido-experimento.log
+echo -e "\nFim: $(date '+%Y-%m-%d %H:%M:%S')" > $dir_resultados_teste/$apelido-experimento.log
