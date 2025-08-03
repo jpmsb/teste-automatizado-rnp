@@ -620,12 +620,12 @@ for ((i = 0; i < boxWidth; i++)); do
     linha_horizontal+="#"
 done
 
-echo -e "\nInício: $(date '+%Y-%m-%d %H:%M:%S')\n" > $dir_resultados/$apelido-experimento.log
-
 # Executa um ou mais testes
 for teste in "${testes[@]}"; do
     apelido=$(echo "$teste" | tr '[:upper:]' '[:lower:]' | sed 's/ /_/g')
     dir_resultados_teste="$dir_resultados/$apelido"
+
+    echo -e "\nInício: $(date '+%Y-%m-%d %H:%M:%S')\n" > $dir_resultados/$apelido-experimento.log
 
     rm -rf $dir_resultados_teste
     mkdir -p $dir_resultados_teste
@@ -671,8 +671,6 @@ for teste in "${testes[@]}"; do
     fi
 
     echo
-    echo -e "\nFim: $(date '+%Y-%m-%d %H:%M:%S')" > $dir_resultados_teste/$apelido-experimento.log
+    echo -e "\nFim: $(date '+%Y-%m-%d %H:%M:%S')" >> $dir_resultados/$apelido-experimento.log
 done
 # mata_processos
-
-echo -e "\nFim: $(date '+%Y-%m-%d %H:%M:%S')" > $dir_resultados/$apelido-experimento.log
