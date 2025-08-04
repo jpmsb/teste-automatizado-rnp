@@ -603,6 +603,8 @@ if [ -n "$arquivo_receita" ]; then
 
     dir_resultados="$dir_resultados/$nome_receita"
 
+    sumarizador_receita=$(obtem_sumarizador "$conteudo_receita")
+
     echo
     box "${texto_inicial[@]}"
 fi
@@ -674,3 +676,28 @@ for teste in "${testes[@]}"; do
     echo -e "\nFim: $(date '+%Y-%m-%d %H:%M:%S')" >> $dir_resultados/$apelido-experimento.log
 done
 # mata_processos
+
+if [ -n "$sumarizador_receita" ]; then
+    echo -e "\nSumarizando resultados usando a rotina abaixo ↓:"
+
+    # Substitui a variável $DIR_RESULTADOS pelo diretório de resultados
+    sumarizador_receita=$(echo "$sumarizador_receita" | sed "s|\$DIR_RESULTADOS|$dir_resultados|g")
+
+    # Substitui as variáveis de teste $Teste[n] pelo nome do teste
+    contador=1
+    for teste in "${testes[@]}"; do
+        sumarizador_receita=$(echo "$sumarizador_receita" | sed "s|\$Teste\[$contador\]|$teste|g")
+        contador=$((contador + 1))
+    done
+
+    # Quebrando o comando em várias linhas para facilitar a visualização
+    sumarizador_receita_formatado=$(echo "$sumarizador_receita" | sed 's/ \(-[a-z]\)/ \\\n     \1/g')
+
+    echo -e "${verde}${sumarizador_receita_formatado}${normal}\n"
+
+    echo -e "Os resultados sumarizados serão salvos em ↓:"
+    echo -e "${verde}$dir_resultados/${nome_receita}-sumarizador.log${normal}\n"
+
+    echo -e "Executando o sumarizador. O conteúdo do log será exibido abaixo. Por favor, aguarde..."
+    bash -c "$sumarizador_receita" | tee $dir_resultados/$nome_receita-sumarizador.log
+fi
