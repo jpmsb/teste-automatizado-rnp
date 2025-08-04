@@ -353,14 +353,14 @@ A seguir, é explicado o que cada seção e parâmetro da receita significa:
 - Seção `[Receita]`:
     - [obrigatório] `Nome`: nome da receita;
     - [opcional] `Descricao`: descrição da receita;
-    - [opcional] `Rodadas`: número de rodadas que cada teste será executado;
+    - [opcional] `Rodadas`: quantidade de rodadas por teste. Quando não informado, o valor padrão é 2 rodadas;
     - [opcional] `TempoDaRodada`: tempo de execução, em segundos, de cada rodada. Quando não informado, o valor padrão é 10 segundos;
     - [opcional] `Sumarizador`: comando que será executado após a execução de todos os testes. Pode ser o comando exato que será utilizado ou é possível utilizar as variáveis `$DIR_RESULTADOS` e `$Teste[n]`, onde `n` é o número do teste, para referenciar o diretório de resultados e o nome do teste, respectivamente. Por exemplo: `./sumarizar-experimento.py -d $DIR_RESULTADOS -t $Teste[1] -t $Teste[2] -t $Teste[3]`. Os números correspondem à ordem de definição dos testes na receita.
 
 - Seção `[Teste]`:
     - [obrigatório] `Nome`: nome do teste;
     - [opcional] `Descricao`: descrição do teste;
-    - [opcional] `PreparoAntes`: comando que será executado antes da execução do teste. Pode ser utilizado para preparar o ambiente, como reiniciar serviços, limpar caches, etc;
+    - [opcional] `PreparoAntes`: comando que será executado antes da execução do teste. Pode ser utilizado para preparar o ambiente, como reiniciar serviços, limpar caches etc;
     - [opcional] `PreparoDepois`: comando que será executado após a execução do teste. Pode ser utilizado para limpar o ambiente, como reiniciar serviços, limpar caches, etc;
     - [obrigatório] `ComandoCliente`: comando do `iperf3` do cliente;
     - [obrigatório] `ComandoServidor`: comando do `iperf3` do servidor.
