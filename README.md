@@ -348,14 +348,14 @@ ComandoCliente=iperf3 -c cliente --skip-rx-copy -A 3,9 -w 8m -t 10 -P 2
 ComandoServidor=iperf3 -s -A 1
 ```
 
-Abaixo, é explicado o que cada seção e parâmetro da receita significa:
+A seguir, é explicado o que cada seção e parâmetro da receita significa:
 
 - Seção `[Receita]`:
     - [obrigatório] `Nome`: nome da receita;
     - [opcional] `Descricao`: descrição da receita;
     - [opcional] `Rodadas`: número de rodadas que cada teste será executado;
     - [opcional] `TempoDaRodada`: tempo de execução, em segundos, de cada rodada. Quando não informado, o valor padrão é 10 segundos;
-    - [opcional] `Sumarizador`: comando que será executado após a execução de todos os testes. Deverá ser o exato comando utilizado
+    - [opcional] `Sumarizador`: comando que será executado após a execução de todos os testes. Pode ser o comando exato que será utilizado ou é possível utilizar as variáveis `$DIR_RESULTADOS` e `$Teste[n]`, onde `n` é o número do teste, para referenciar o diretório de resultados e o nome do teste, respectivamente. Por exemplo: `./sumarizar-experimento.py -d $DIR_RESULTADOS -t $Teste[1] -t $Teste[2] -t $Teste[3]`. Os números correspondem à ordem de definição dos testes na receita.
 
 - Seção `[Teste]`:
     - [obrigatório] `Nome`: nome do teste;
@@ -365,8 +365,40 @@ Abaixo, é explicado o que cada seção e parâmetro da receita significa:
     - [obrigatório] `ComandoCliente`: comando do `iperf3` do cliente;
     - [obrigatório] `ComandoServidor`: comando do `iperf3` do servidor.
 
-Para comentar algum parâmetro, basta utilizar o caractere `;` no início da linha. Além disso, é possível sobrescrever os parâmetros `TempoDaRodada` e `Rodadas` usando os argumentos `-t` e `-r`, respectivamente, diretamente na rotina `executa-experimento`:
+Para comentar algum parâmetro, basta utilizar o caractere `;` no início da linha:
+
+```ini
+[Receita]
+Nome=Teste Receita
+Descricao=Experimento de teste com receita
+Rodadas=3
+TempoDaRodada=15
+; Sumarizador=./sumarizar-experimento.py -d resultados/ -t "teste_receita_1" -t "teste_receita_2" -t "teste_receita_3"
+
+[Teste]
+Nome=teste_receita_1
+Descricao=Teste A
+; PreparoAntes=script_preparo_antes_A
+PreparoDepois=script_preparo_depois_A
+ComandoCliente=iperf3 -c cliente -A 3,7 -w 8m -t 10 -P 2
+ComandoServidor=iperf3 -s -A 1
+```
+
+Além disso, é possível sobrescrever os parâmetros `TempoDaRodada` e `Rodadas` usando os argumentos `-t` e `-r`, respectivamente, diretamente na rotina `executa-experimento`:
 
 ```bash
 ./executa-experimento -r 5 -t 15 --receita receita
 ```
+
+No comando acima, o teste será executado com 5 rodadas e cada rodada terá duração de 15 segundos, mesmo que outros valores para esses parâmetros já estejam definidos na receita. Com isso, a ordem de precedência dos parâmetros é a seguinte:
+
+- Duração da rodada:
+    1. Argumento `-t` da rotina `executa-experimento`;
+    2. Parâmetro `TempoDaRodada` da receita;
+    3. Argumento `-t` do comando `iperf3` do cliente, caso esteja definido;
+    4. Valor padrão de 10 segundos.
+
+- Quantidade de rodadas:
+    1. Argumento `-r` da rotina `executa-experimento`;
+    2. Parâmetro `Rodadas` da receita;
+    3. Valor padrão de 2 rodadas.
