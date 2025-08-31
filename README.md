@@ -321,7 +321,7 @@ Nome=Teste Receita
 Descricao=Experimento de teste com receita
 Rodadas=3
 TempoDaRodada=15
-Sumarizador=./sumarizar-experimento.py -d resultados/ -t "teste_receita_1" -t "teste_receita_2" -t "teste_receita_3"
+Sumarizador=./sumarizar-experimento.py -d $DIR_RESULTADOS -t $Teste[1] -t $Teste[2] -t $Teste[3]
 
 [Teste]
 Nome=teste_receita_1
