@@ -610,7 +610,7 @@ if [ -n "$arquivo_receita" ]; then
 fi
 
 if [ ! -d $dir_resultados ]; then
-    mkdir $dir_resultados
+    mkdir -p $dir_resultados
 fi
 
 # Cria a linha horizontal
