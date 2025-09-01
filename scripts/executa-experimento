@@ -625,7 +625,7 @@ done
 
 # Executa um ou mais testes
 for teste in "${testes[@]}"; do
-    apelido=$(echo "$teste" | tr '[:upper:]' '[:lower:]' | sed 's/ /_/g')
+    apelido=$(echo "$teste" | sed 's/ /_/g')
     dir_resultados_teste="$dir_resultados/$apelido"
 
     echo -e "\nInício: $(date '+%Y-%m-%d %H:%M:%S')\n" > $dir_resultados/$apelido-experimento.log
