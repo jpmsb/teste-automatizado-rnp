@@ -1,8 +1,9 @@
 #!/bin/bash
 
 # Arquivo: executa-experimento
+
 box(){
-    local LANG="" LC_ALL=""
+    local LANG="C.UTF-8" LC_ALL="C.UTF-8"
     local sentence="$(printf "%b\n" "$@")"
 
     local ansi_re=$'\033\\[(1;31|1;32|1;33|1;36|1;95|0)m'
