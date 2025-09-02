@@ -599,6 +599,7 @@ if [ -n "$arquivo_receita" ]; then
         done
     fi
 
+    texto_inicial+="Quantidade de testes: ${verde}${#testes[@]}${normal}\n"
     texto_inicial+="Quantidade de rodadas: ${verde}${rodadas}${normal}\n"
     texto_inicial+="Duração de cada rodada: ${verde}${duracao} segundos${normal}\n"
 
