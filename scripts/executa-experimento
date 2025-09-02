@@ -352,7 +352,7 @@ contagem_regressiva(){
 
     printf "\033[K"
     printf "$texto"
-    echo
+    echo -e '\r'
 }
 
 roda_teste(){
