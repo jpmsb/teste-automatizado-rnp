@@ -222,7 +222,9 @@ obtem_nomes_testes() {
         fi
     done <<< "$conteudo_receita"
 
-    echo "${nomes_testes[@]}" | tr ' ' '\n'
+    for nome_teste in "${nomes_testes[@]}"; do
+        echo "$nome_teste"
+    done
 }
 
 obtem_teste() {
@@ -501,6 +503,7 @@ quantidade_rodadas_padrao=2
 rodadas=${quantidade_rodadas_padrao}
 testes=()
 testes+=($apelido)
+testes_normalizados=()
 dir_este_script=$(dirname $(realpath $0))
 dir_resultados="$dir_este_script/resultados"
 
@@ -587,16 +590,17 @@ if [ -n "$arquivo_receita" ]; then
     fi
 
     testes_receita=$(obtem_nomes_testes "$conteudo_receita")
+
     if [ -z "$testes_receita" ]; then
         echo -e "${vermelho}Erro: nenhum teste encontrado na receita.${normal}"
         exit 1
     else
-        for teste in $testes_receita; do
+        while IFS= read -r teste; do
             # Verifica se o teste já foi adicionado
             if [[ ! " ${testes[@]} " =~ " ${teste} " ]]; then
                 testes+=("$teste")
             fi
-        done
+        done <<< "$testes_receita"
     fi
 
     texto_inicial+="Quantidade de testes: ${verde}${#testes[@]}${normal}\n"
@@ -627,6 +631,7 @@ done
 # Executa um ou mais testes
 for teste in "${testes[@]}"; do
     apelido=$(echo "$teste" | sed 's/ /_/g')
+    testes_normalizados+=("$apelido")
     dir_resultados_teste="$dir_resultados/$apelido"
 
     echo -e "\nInício: $(date '+%Y-%m-%d %H:%M:%S')\n" > $dir_resultados/$apelido-experimento.log
@@ -636,7 +641,16 @@ for teste in "${testes[@]}"; do
 
     if [ -n "$arquivo_receita" ]; then
         obtem_teste "$conteudo_receita" "$teste"
+
+        if [ -z "$comando_cliente" ]; then
+            echo -e "${vermelho}Erro: comando de cliente não encontrado.${normal}"
+            exit 1
+        elif [ -z "$comando_servidor" ]; then
+            echo -e "${vermelho}Erro: comando de servidor não encontrado.${normal}"
+            exit 1
+        fi
     fi
+
     # mata_processos
     # sobe_cenario
 
@@ -687,7 +701,7 @@ if [ -n "$sumarizador_receita" ]; then
 
     # Substitui as variáveis de teste $Teste[n] pelo nome do teste
     contador=1
-    for teste in "${testes[@]}"; do
+    for teste in "${testes_normalizados[@]}"; do
         sumarizador_receita=$(echo "$sumarizador_receita" | sed "s|\$Teste\[$contador\]|$teste|g")
         contador=$((contador + 1))
     done
