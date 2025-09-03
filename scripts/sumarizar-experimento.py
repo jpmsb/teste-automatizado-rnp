@@ -29,6 +29,25 @@ def format_throughput(value):
     else:
         return f"{value:.2f} M"
 
+# Escolhe a escala com base no maior valor em bps
+def choose_bps_scale(max_bps: float):
+    scales = [
+        ("bps", 1.0),
+        ("kbps", 1e3),
+        ("Mbps", 1e6),
+        ("Gbps", 1e9),
+        ("Tbps", 1e12),
+    ]
+    for i, (name, factor) in enumerate(scales):
+        next_factor = scales[i + 1][1] if i + 1 < len(scales) else None
+        if next_factor is None or max_bps < next_factor:
+            return name, factor
+    return scales[-1]
+
+# Formata valores para rótulo usando a unidade escolhida
+def format_value(v_bps, fator):
+    return f"{(v_bps / fator):.2f}"
+
 ##############################
 # FUNÇÕES DE PLOTAGEM (com error bars)
 ##############################
