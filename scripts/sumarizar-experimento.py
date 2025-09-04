@@ -46,7 +46,7 @@ def choose_bps_scale(max_bps: float):
 
 # Formata valores para rótulo usando a unidade escolhida
 def format_value(v_bps, fator):
-    return f"{(v_bps / fator):.2f}"
+    return v_bps / fator
 
 ##############################
 # FUNÇÕES DE PLOTAGEM (com error bars)
