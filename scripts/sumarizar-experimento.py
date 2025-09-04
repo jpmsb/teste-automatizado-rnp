@@ -136,6 +136,7 @@ def plot_vazao_barra_for_test(test_dir, test_name):
     cliente_list = []
     servidor_list = []
     count = 0
+
     for rodada in rounds:
         rodada_path = os.path.join(test_dir, rodada)
         client_file = os.path.join(rodada_path, f"{rodada}-{test_name}-iperf3_client.csv")
@@ -150,34 +151,49 @@ def plot_vazao_barra_for_test(test_dir, test_name):
         col_client = 'bits_por_segundo' if 'bits_por_segundo' in df_client.columns else None
         col_server = 'bits_por_segundo' if 'bits_por_segundo' in df_server.columns else None
 
-        if col_client:
+        # Cálculos em bps
+        if col_client and len(df_client) > 0:
             n_client = len(df_client)
-            mean_client = df_client[col_client].mean() / 1e6
-            err_client = 1.96 * df_client[col_client].std() / np.sqrt(n_client) / 1e6
-        else:
-            mean_client = 0
-            err_client = 0
+            mean_client_bps = float(df_client[col_client].mean())
+            err_client_bps  = float(1.96 * df_client[col_client].std(ddof=1) / np.sqrt(n_client))
 
-        if col_server:
+        else:
+            mean_client_bps = err_client_bps = 0.0
+
+        if col_server and len(df_server) > 0:
             n_server = len(df_server)
-            mean_server = df_server[col_server].mean() / 1e6
-            err_server = 1.96 * df_server[col_server].std() / np.sqrt(n_server) / 1e6
-        else:
-            mean_server = 0
-            err_server = 0
+            mean_server_bps = float(df_server[col_server].mean())
+            err_server_bps  = float(1.96 * df_server[col_server].std(ddof=1) / np.sqrt(n_server))
 
+        else:
+            mean_server_bps = err_server_bps = 0.0
+
+        # Armazena os valores para o gráfico desta rodada em bits por segundo
         labels = ['Cliente', 'Servidor']
-        valores = [mean_client, mean_server]
-        err_values = [err_client, err_server]
+        valores_bps   = [mean_client_bps, mean_server_bps]
+        erros_bps     = [err_client_bps,  err_server_bps]
+
+        # Escolhe a escala ótima para esta rodada
+        max_bps = max(valores_bps) if valores_bps else 0.0
+        unidade, fator = choose_bps_scale(max_bps)
+
+        # Normaliza valores/erros para a escala escolhida
+        valores_norm = [v / fator for v in valores_bps]
+        erros_norm   = [e / fator for e in erros_bps]
+
         x = np.arange(len(labels))
         width = 0.3
         plt.figure(figsize=(8,6))
-        bars = plt.bar(x, valores, width, yerr=err_values, capsize=5)
-        for bar in bars:
-            plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(),
-                     format_throughput(bar.get_height()),
-                     ha='center', va='bottom')
-        plt.ylabel("Vazão Média (Mbps)")
+        bars = plt.bar(x, valores_norm, width, yerr=erros_norm, capsize=5)
+        for bar, raw_bps in zip(bars, valores_bps):
+            plt.text(
+                bar.get_x() + bar.get_width()/2,
+                bar.get_height(),
+                f"{format_value(raw_bps, fator):.2f}",
+                ha='center', va='bottom'
+            )
+
+        plt.ylabel(f"Vazão Média ({unidade})")
         plt.xlabel("Origem")
         plt.title(f"Vazão - {format_label(rodada)} - {format_label(test_name)}")
         plt.xticks(x, labels)
@@ -188,31 +204,45 @@ def plot_vazao_barra_for_test(test_dir, test_name):
         plt.savefig(png_path)
         plt.savefig(svg_path)
         plt.close()
-        
-        cliente_list.append((mean_client, err_client))
-        servidor_list.append((mean_server, err_server))
+
+        # Salva os valores em bps para o gráfico agregado
+        cliente_list.append((mean_client_bps, err_client_bps))
+        servidor_list.append((mean_server_bps, err_server_bps))
         count += 1
 
+    # Gráfico agregado (Média das Rodadas)
     if count > 0:
-        cliente_means = [val for val, err in cliente_list]
-        servidor_means = [val for val, err in servidor_list]
-        media_cliente = np.mean(cliente_means)
-        media_servidor = np.mean(servidor_means)
-        err_cliente = 1.96 * np.std(cliente_means, ddof=1) / np.sqrt(len(cliente_means))
-        err_servidor = 1.96 * np.std(servidor_means, ddof=1) / np.sqrt(len(servidor_means))
-        
+        cliente_means_bps  = [val for val, _ in cliente_list]
+        servidor_means_bps = [val for val, _ in servidor_list]
+        media_cliente_bps  = float(np.mean(cliente_means_bps)) if cliente_means_bps else 0.0
+        media_servidor_bps = float(np.mean(servidor_means_bps)) if servidor_means_bps else 0.0
+
+        err_cliente_bps  = float(1.96 * np.std(cliente_means_bps,  ddof=1) / np.sqrt(len(cliente_means_bps)))  if len(cliente_means_bps)  > 1 else 0.0
+        err_servidor_bps = float(1.96 * np.std(servidor_means_bps, ddof=1) / np.sqrt(len(servidor_means_bps))) if len(servidor_means_bps) > 1 else 0.0
+
+        # Converte em bps para escolher a escala do gráfico agregado
+        valores_bps = [media_cliente_bps, media_servidor_bps]
+        erros_bps   = [err_cliente_bps, err_servidor_bps]
+
+        max_bps = max(valores_bps) if valores_bps else 0.0
+        unidade, fator = choose_bps_scale(max_bps)
+
+        valores_norm = [v / fator for v in valores_bps]
+        erros_norm   = [e / fator for e in erros_bps]
+
         labels = ['Cliente', 'Servidor']
-        valores = [media_cliente, media_servidor]
-        err_values = [err_cliente, err_servidor]
         x = np.arange(len(labels))
         width = 0.3
         plt.figure(figsize=(8,6))
-        bars = plt.bar(x, valores, width, yerr=err_values, capsize=5)
-        for bar in bars:
-            plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(),
-                     format_throughput(bar.get_height()),
-                     ha='center', va='bottom')
-        plt.ylabel("Vazão Média (Mbps)")
+        bars = plt.bar(x, valores_norm, width, yerr=erros_norm, capsize=5)
+        for bar, raw_bps in zip(bars, valores_bps):
+            plt.text(
+                bar.get_x() + bar.get_width()/2,
+                bar.get_height(),
+                f"{format_value(raw_bps, fator):.2f}",
+                ha='center', va='bottom'
+            )
+        plt.ylabel(f"Vazão Média ({unidade})")
         plt.xlabel("Origem")
         plt.title(f"{format_label(test_name)} - Vazão (Média das Rodadas)")
         plt.xticks(x, labels)
@@ -223,9 +253,13 @@ def plot_vazao_barra_for_test(test_dir, test_name):
         plt.savefig(png_path)
         plt.savefig(svg_path)
         plt.close()
-        return ( (media_cliente, err_cliente), (media_servidor, err_servidor) )
+
+        # Retorno dos valores médios e erros em bps, e também formatados
+        return ((media_cliente_bps, err_cliente_bps),
+                (media_servidor_bps, err_servidor_bps),
+                (format_value(media_cliente_bps, fator), format_value(media_servidor_bps, fator)), unidade)
     else:
-        return ( (0,0), (0,0) )
+        return ((0, 0), (0, 0), (0, 0))
 
 def plot_perda_barra_for_test(test_dir, test_name):
     rounds = get_round_dirs(test_dir)
