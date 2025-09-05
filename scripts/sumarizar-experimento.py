@@ -845,26 +845,48 @@ def plot_vazao_comparativo_por_teste(resultados_dir, tests, vazao_aggregate):
     prefix = "-".join(sorted(tests))
     tests_sorted = sorted(vazao_aggregate.keys())
     x = np.arange(len(tests_sorted))
-    client_values = [vazao_aggregate[test][0][0] for test in tests_sorted]
-    server_values = [vazao_aggregate[test][1][0] for test in tests_sorted]
-    client_err_values = [vazao_aggregate[test][0][1] for test in tests_sorted]
-    server_err_values = [vazao_aggregate[test][1][1] for test in tests_sorted]
+
+    # Vetores em bps
+    client_values_bps = [vazao_aggregate[test][0][0] for test in tests_sorted]
+    server_values_bps = [vazao_aggregate[test][1][0] for test in tests_sorted]
+    client_err_bps    = [vazao_aggregate[test][0][1] for test in tests_sorted]
+    server_err_bps    = [vazao_aggregate[test][1][1] for test in tests_sorted]
+
+    # Escala ótima com base no maior bps entre cliente/servidor
+    max_bps = max(max(client_values_bps) if client_values_bps else 0,
+                  max(server_values_bps) if server_values_bps else 0)
+    unidade, fator = choose_bps_scale(max_bps)
+
+    # Normaliza para a escala encontrada
+    client_values = [v / fator for v in client_values_bps]
+    server_values = [v / fator for v in server_values_bps]
+    client_err    = [e / fator for e in client_err_bps]
+    server_err    = [e / fator for e in server_err_bps]
+
     width = 0.35
     plt.figure(figsize=(8,6))
-    bars1 = plt.bar(x - width/2, client_values, width, yerr=client_err_values, capsize=5, label="Cliente")
-    bars2 = plt.bar(x + width/2, server_values, width, yerr=server_err_values, capsize=5, label="Servidor")
-    for bar in bars1:
-        plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), format_throughput(bar.get_height()),
+    bars1 = plt.bar(x - width/2, client_values, width, yerr=client_err, capsize=5, label="Cliente")
+    bars2 = plt.bar(x + width/2, server_values, width, yerr=server_err, capsize=5, label="Servidor")
+
+    # Rótulos acima das barras (usando a mesma unidade do eixo)
+    for bar, raw_bps in zip(bars1, client_values_bps):
+        vazao_cli = f"{format_value(raw_bps, fator):.2f}"
+        plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(),
+                 vazao_cli,
                  ha='center', va='bottom')
-    for bar in bars2:
-        plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), format_throughput(bar.get_height()),
+    for bar, raw_bps in zip(bars2, server_values_bps):
+        vazao_srv = f"{format_value(raw_bps, fator):.2f}"
+        plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(),
+                 vazao_srv,
                  ha='center', va='bottom')
-    plt.ylabel("Vazão Média (Mbps)")
+
+    plt.ylabel(f"Vazão Média ({unidade})")
     plt.xlabel("Teste")
     plt.title("Vazão média por teste")
     plt.xticks(x, [format_label(test) for test in tests_sorted])
     plt.legend()
     plt.ylim(bottom=0)
+
     png_path = os.path.join(resultados_dir, f"{prefix}-vazao_barra_comparativo_por_teste.png")
     svg_path = os.path.join(resultados_dir, f"{prefix}-vazao_barra_comparativo_por_teste.svg")
     plt.tight_layout()
