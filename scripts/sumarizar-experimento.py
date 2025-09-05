@@ -1010,16 +1010,16 @@ def plot_vazao_com_referencia(resultados_dir, tests, vazao_aggregate, ref_srv, r
 ##############################
 # FUNÇÃO DE SUMARIZAÇÃO E MAIN
 ##############################
-def print_summarization(test_name, cpu_usage, vazao_cliente, vazao_servidor, perda, round_count):
+def print_summarization(test_name, cpu_usage, vazao_cli_srv_formatada, unidade, perda, round_count):
     print(f"\nResumo para {format_label(test_name)}:")
     print("\nUso de CPU por núcleo:")
     for core, usage in cpu_usage.items():
         print(f"    {format_label(core)}: {usage[0]:.2f}%")
     
     print("\nVazão:")
-    print(f"{'Origem':<10}{'Vazão (Mbps)':<15}")
-    print(f"{'Cliente':<10}{vazao_cliente[0]:<15.2f}")
-    print(f"{'Servidor':<10}{vazao_servidor[0]:<15.2f}")
+    print(f"{'Origem':<10}{'Vazão (' + unidade + ')':<15}")
+    print(f"{'Cliente':<10}{vazao_cli_srv_formatada[0]:<15.4f}")
+    print(f"{'Servidor':<10}{vazao_cli_srv_formatada[1]:<15.4f}")
     
     print("\nPerda (%):")
     print(f"{'Média':<10}{perda[0]:<15.4f}")
@@ -1066,7 +1066,7 @@ def main():
         plot_perda_comparativo_por_rodada(test_dir, test)
         plot_vazao_comparativo_por_rodada(test_dir, test)
 
-        print_summarization(test, cpu_overall, vazao_cli, vazao_srv, perda_overall, round_count)
+        print_summarization(test, cpu_overall, vazao_cli_srv_formatada, unidade, perda_overall, round_count)
 
         cpu_aggregate[test] = cpu_overall
         perda_aggregate[test] = perda_overall
