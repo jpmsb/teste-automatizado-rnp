@@ -1055,7 +1055,7 @@ def main():
         print(f"\nProcessando {format_label(test)} ...")
         overall_cpu_values, round_count = plot_cpu_usage_for_round(test_dir, test)
         cpu_overall = plot_cpu_usage_for_test(overall_cpu_values, test_dir, test)
-        vazao_cli, vazao_srv = plot_vazao_barra_for_test(test_dir, test)
+        vazao_cli, vazao_srv, vazao_cli_srv_formatada, unidade = plot_vazao_barra_for_test(test_dir, test)
         perda_overall = plot_perda_barra_for_test(test_dir, test)
         
         plot_cpu_temporal_for_test(test_dir, test)
