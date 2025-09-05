@@ -756,63 +756,87 @@ def plot_vazao_comparativo_por_rodada(test_dir, test_name):
 
         df_client = pd.read_csv(client_file)
         df_server = pd.read_csv(server_file)
-        # Cliente
-        if 'bits_por_segundo' in df_client.columns:
-            n_client = len(df_client)
-            m_client = df_client['bits_por_segundo'].mean() / 1e6
-            e_client = 1.96 * df_client['bits_por_segundo'].std() / np.sqrt(n_client) / 1e6
-            data_client[rodada] = m_client
-            err_client[rodada] = e_client
-        # Servidor
-        if 'bits_por_segundo' in df_server.columns:
-            n_server = len(df_server)
-            m_server = df_server['bits_por_segundo'].mean() / 1e6
-            e_server = 1.96 * df_server['bits_por_segundo'].std() / np.sqrt(n_server) / 1e6
-            data_server[rodada] = m_server
-            err_server[rodada] = e_server
 
-    # Considera apenas rodadas onde ambos existem (cliente e servidor)
+        # Cliente (em bps)
+        if 'bits_por_segundo' in df_client.columns and len(df_client) > 0:
+            n_client  = len(df_client)
+            m_client  = df_client['bits_por_segundo'].mean()  # bps
+            e_client  = 1.96 * df_client['bits_por_segundo'].std(ddof=1) / np.sqrt(n_client)  # bps
+            data_client[rodada] = float(m_client)
+            err_client[rodada]  = float(e_client)
+
+        # Servidor (em bps)
+        if 'bits_por_segundo' in df_server.columns and len(df_server) > 0:
+            n_server  = len(df_server)
+            m_server  = df_server['bits_por_segundo'].mean()  # bps
+            e_server  = 1.96 * df_server['bits_por_segundo'].std(ddof=1) / np.sqrt(n_server)  # bps
+            data_server[rodada] = float(m_server)
+            err_server[rodada]  = float(e_server)
+
+    # Considera apenas rodadas presentes em ambos
     rounds_sorted = sorted(set(data_client.keys()) & set(data_server.keys()))
-
     if not rounds_sorted:
         print("Nenhum dado de vazão encontrado em comum para cliente e servidor.")
         return
 
+    # Vetores em bps
+    client_values_bps     = [data_client[r] for r in rounds_sorted]
+    server_values_bps     = [data_server[r] for r in rounds_sorted]
+    client_err_values_bps = [err_client[r]  for r in rounds_sorted]
+    server_err_values_bps = [err_server[r]  for r in rounds_sorted]
+
+    # Encontra a maior unidade de escala pelo maior valor entre cliente e servidor
+    max_bps = max(max(client_values_bps), max(server_values_bps))
+    unidade, fator = choose_bps_scale(max_bps if max_bps > 0 else 1.0)
+
+    # Normaliza para a escala encontrada
+    client_values = [v / fator for v in client_values_bps]
+    server_values = [v / fator for v in server_values_bps]
+    client_err_values = [e / fator for e in client_err_values_bps]
+    server_err_values = [e / fator for e in server_err_values_bps]
+
+    # Eixo X (rodada N)
     x = np.arange(len(rounds_sorted))
     rounds_sorted_numbers = [re.search(r'rodada_(\d+)', r).group(1) for r in rounds_sorted]
 
     width = 0.35
-    client_values = [data_client[r] for r in rounds_sorted]
-    server_values = [data_server[r] for r in rounds_sorted]
-    client_err_values = [err_client[r] for r in rounds_sorted]
-    server_err_values = [err_server[r] for r in rounds_sorted]
-    plt.figure(figsize=(8,6))
-    bars1 = plt.bar(x - width/2, client_values, width, yerr=client_err_values, capsize=5, label="Cliente")
-    bars2 = plt.bar(x + width/2, server_values, width, yerr=server_err_values, capsize=5, label="Servidor")
-    for bar in bars1:
-        plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), format_throughput(bar.get_height()),
-                 ha='center', va='bottom')
-    for bar in bars2:
-        plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), format_throughput(bar.get_height()),
-                 ha='center', va='bottom')
-    plt.ylabel("Vazão Média (Mbps)")
+    plt.figure(figsize=(8, 6))
+    bars1 = plt.bar(x - width/2, client_values, width, yerr=client_err_values,
+                    capsize=5, label="Cliente")
+    bars2 = plt.bar(x + width/2, server_values, width, yerr=server_err_values,
+                    capsize=5, label="Servidor")
+
+    # Rótulos acima das barras
+    for bar, raw_bps in zip(bars1, client_values_bps):
+        plt.text(
+            bar.get_x() + bar.get_width()/2,
+            bar.get_height(),
+            f"{format_value(raw_bps, fator):.2f}",
+            ha='center', va='bottom'
+        )
+    for bar, raw_bps in zip(bars2, server_values_bps):
+        plt.text(
+            bar.get_x() + bar.get_width()/2,
+            bar.get_height(),
+            f"{format_value(raw_bps, fator):.2f}",
+            ha='center', va='bottom'
+        )
+
+    # Eixos e título
+    plt.ylabel(f"Vazão Média ({unidade})")
     plt.xlabel("Rodada")
     plt.title(f"{format_label(test_name)} - Vazão média por rodada")
     plt.xticks(x, rounds_sorted_numbers)
 
-    # Verifica se a legenda ficará em cima
-    # dos valores no topo das barras
+    # Ajuste do topo para não colidir com os rótulos
     max_height = max(max(client_values), max(server_values))
-    if max_height > 0:
-        plt.ylim(top=max_height * 1.1)
-    else:
-        plt.ylim(top=1)
-    plt.legend()
+    plt.ylim(bottom=0, top=(max_height * 1.1) if max_height > 0 else 1.0)
 
-    plt.ylim(bottom=0)
+    plt.legend()
+    plt.tight_layout()
+
     png_path = os.path.join(test_dir, f"{test_name}-vazao_barra_comparativo_por_rodada.png")
     svg_path = os.path.join(test_dir, f"{test_name}-vazao_barra_comparativo_por_rodada.svg")
-    plt.tight_layout()
     plt.savefig(png_path)
     plt.savefig(svg_path)
     plt.close()
