@@ -895,19 +895,43 @@ def plot_vazao_comparativo_por_teste(resultados_dir, tests, vazao_aggregate):
     plt.close()
 
 def plot_vazao_servidor_comparativo(resultados_dir, tests, vazao_aggregate):
-    tests_sorted = sorted(tests)
+    # Mantém apenas testes presentes no agregado e na mesma ordem do parâmetro 'tests'
+    tests_sorted = [t for t in tests if t in vazao_aggregate]
+    if not tests_sorted:
+        print("Nenhum teste com dados de vazão no agregado.")
+        return
+
     x = np.arange(len(tests_sorted))
-    server_values = [vazao_aggregate[test][1][0] for test in tests_sorted if test in vazao_aggregate]
-    server_err_values = [vazao_aggregate[test][1][1] for test in tests_sorted if test in vazao_aggregate]
+
+    # Vetores em bps
+    server_values_bps = [vazao_aggregate[test][1][0] for test in tests_sorted]
+    server_err_bps    = [vazao_aggregate[test][1][1] for test in tests_sorted]
+
+    # Encontra a maior escala a partir do maior valor em bps
+    max_bps = max(server_values_bps) if server_values_bps else 0.0
+    unidade, fator = choose_bps_scale(max_bps)
+
+    # Normaliza pela escala encontrada
+    server_values = [v / fator for v in server_values_bps]
+    server_err    = [e / fator for e in server_err_bps]
+
     width = 0.5
     plt.figure(figsize=(8,6))
-    bars = plt.bar(x, server_values, width, yerr=server_err_values, capsize=5)
-    for bar in bars:
-        plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), format_throughput(bar.get_height()),
-                 ha='center', va='bottom')
-    plt.ylabel("Vazão Média do Servidor (Mbps)")
+    bars = plt.bar(x, server_values, width, yerr=server_err, capsize=5, label="Servidor")
+
+    # Rótulos acima das barras
+    for bar, raw_bps in zip(bars, server_values_bps):
+        vazao_srv = f"{format_value(raw_bps, fator):.2f}"
+        plt.text(
+            bar.get_x() + bar.get_width()/2,
+            bar.get_height(),
+            vazao_srv,
+            ha='center', va='bottom'
+        )
+
+    plt.ylabel(f"Vazão média do servidor ({unidade})")
     plt.xlabel("Teste")
-    plt.title("Vazão do Servidor Comparativo")
+    plt.title("Vazão do servidor por teste")
     plt.xticks(x, [format_label(test) for test in tests_sorted])
     plt.ylim(bottom=0)
     prefix = "-".join(tests_sorted)
