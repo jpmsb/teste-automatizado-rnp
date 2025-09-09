@@ -1165,7 +1165,7 @@ def main():
                              ha='center', va='bottom')
             plt.ylabel("Uso médio de CPU (%)")
             plt.xlabel("Teste")
-            plt.title("Uso de CPU Comparativo por Teste (CPUs Selecionadas)")
+            plt.title("Uso de CPU por teste (CPUs Selecionadas)")
             plt.xticks(x, [format_label(test) for test in tests_sorted])
             plt.legend(title="CPU")
             plt.ylim(bottom=0)
