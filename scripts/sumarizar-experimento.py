@@ -1037,9 +1037,9 @@ def plot_vazao_com_referencia(resultados_dir, tests, vazao_aggregate, ref_srv, r
     for bar in bars2:
         plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), format_throughput(bar.get_height()),
                  ha='center', va='bottom')
-    plt.ylabel("Vazão Média do Servidor (Mbps)")
+    plt.ylabel("Vazão média do servidor (Mbps)")
     plt.xlabel("Teste")
-    plt.title("Vazão do Servidor - Comparativo com Referência")
+    plt.title("Vazão do servidor - Comparativo com Referência")
     plt.xticks(x, [format_label(test) for test in tests_ordered])
     plt.legend()
     plt.ylim(bottom=0)
