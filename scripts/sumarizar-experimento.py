@@ -1072,6 +1072,89 @@ def print_summarization(test_name, cpu_usage, vazao_cli_srv_formatada, unidade, 
 
     print(f"\nNúmero de rodadas computadas: {round_count}\n")
 
+def write_markdown_summary(sumarizado_dir, tests, cpu_aggregate, vazao_aggregate, perda_aggregate):
+    # 1) Determina a maior unidade de vazão entre todos os testes
+    all_bps = []
+    for t in tests:
+        if t in vazao_aggregate:
+            # vazao_aggregate[t] = ( (cli_bps, cli_err), (srv_bps, srv_err) )
+            cli_bps = vazao_aggregate[t][0][0] if vazao_aggregate[t][0] else 0.0
+            srv_bps = vazao_aggregate[t][1][0] if vazao_aggregate[t][1] else 0.0
+            all_bps.extend([cli_bps, srv_bps])
+    max_bps = max(all_bps) if all_bps else 0.0
+    unidade, fator = choose_bps_scale(max_bps if max_bps > 0 else 1.0)
+
+    # 2) Descobre todos os núcleos de CPU
+    cpu_keys_set = set()
+    for t in tests:
+        if t in cpu_aggregate and cpu_aggregate[t]:
+            cpu_keys_set.update(cpu_aggregate[t].keys())
+    # Ordena as CPUs
+    def _cpu_idx(k):
+        m = re.search(r'(\d+)', k or "")
+        return int(m.group(1)) if m else 10**9
+    cpu_keys_sorted = sorted(cpu_keys_set, key=_cpu_idx)
+
+    # 3) Monta o cabeçalho da tabela
+    header_cols = ["Nome do teste",
+                   f"Cliente ({unidade})",
+                   f"Servidor ({unidade})",
+                   "Perda (%)"]
+    # Mostra as porcentagens de CPU
+    for k in cpu_keys_sorted:
+        idxm = re.search(r'(\d+)', k or "")
+        idx = idxm.group(1) if idxm else k
+        header_cols.append(f"CPU {idx} (%)")
+
+    # 4) Linhas da tabela (uma por teste, respeitando a ordem informada pelo usuário)
+    lines = []
+    lines.append("| " + " | ".join(header_cols) + " |")
+    lines.append("|" + "|".join([" --- "]*len(header_cols)) + "|")
+
+    for t in tests:
+        # Nome do teste
+        nome = format_label(t)
+
+        # Vazão
+        if t in vazao_aggregate:
+            cli_bps = vazao_aggregate[t][0][0]
+            srv_bps = vazao_aggregate[t][1][0]
+            cli_val = f"{(cli_bps / fator):.2f}"
+            srv_val = f"{(srv_bps / fator):.2f}"
+        else:
+            cli_val = ""
+            srv_val = ""
+
+        # Perda
+        if t in perda_aggregate and perda_aggregate[t] is not None:
+            perda_media = perda_aggregate[t][0]
+            perda_val = f"{perda_media:.4f}"
+        else:
+            perda_val = ""
+
+        # CPUs
+        cpu_vals = []
+        for k in cpu_keys_sorted:
+            v = ""
+            if t in cpu_aggregate and cpu_aggregate[t]:
+                mean_err = cpu_aggregate[t].get(k)
+                if mean_err:
+                    v = f"{mean_err[0]:.2f}"
+            cpu_vals.append(v)
+
+        row = [nome, cli_val, srv_val, perda_val] + cpu_vals
+        lines.append("| " + " | ".join(row) + " |")
+
+    # 5) Escreve arquivo
+    prefix = "sumarizado-" + "-".join(tests)
+    md_path = os.path.join(sumarizado_dir, f"{prefix}.md")
+    with open(md_path, "w", encoding="utf-8") as f:
+        # Escreve no arquivo
+        f.write("# Sumarização dos resultados\n\n")
+        f.write("Abaixo, está a tabela com a sumarização dos resultados dos testes:\n\n")
+        f.write("\n".join(lines) + "\n")
+    print(f"Arquivo Markdown gerado: {md_path}")
+
 def main():
     parser = argparse.ArgumentParser(description="Sumariza experimento e gera gráficos comparativos.")
     parser.add_argument("-d", "--resultados", required=True,
@@ -1190,6 +1273,8 @@ def main():
             print(f"\nProcessando teste de referência {format_label(ref_test)} ...")
             vazao_ref = plot_vazao_barra_for_test(ref_dir, ref_test)
             plot_vazao_com_referencia(sumarizado_dir, tests, vazao_aggregate, vazao_ref[1], ref_test)
+
+    write_markdown_summary(sumarizado_dir, tests, cpu_aggregate, vazao_aggregate, perda_aggregate)
 
 if __name__ == "__main__":
     main()
