@@ -357,6 +357,13 @@ contagem_regressiva(){
     echo -e '\r'
 }
 
+mostrar_e_registrar(){
+    local texto="$1"
+    local arquivo_log="$2"
+
+    echo -e "$texto" | tee >(sed $'s/\033[[][^A-Za-z]*m//g' >> "$arquivo_log")
+}
+
 roda_teste(){
     local rodada_atual="$1"
     local comando_cliente="$2"
