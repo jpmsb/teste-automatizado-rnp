@@ -634,7 +634,7 @@ for teste in "${testes[@]}"; do
     testes_normalizados+=("$apelido")
     dir_resultados_teste="$dir_resultados/$apelido"
 
-    echo -e "\nInício: $(date '+%Y-%m-%d %H:%M:%S')\n" > $dir_resultados/$apelido-experimento.log
+    echo -e "\nInício: $(date '+%Y-%m-%d %H:%M:%S')\n" > $dir_resultados_teste/$apelido-experimento.log
 
     rm -rf $dir_resultados_teste
     mkdir -p $dir_resultados_teste
@@ -652,7 +652,6 @@ for teste in "${testes[@]}"; do
     fi
 
     echo -e "\n${linha_horizontal}\n"
-    echo -e "\nInício: $(date '+%Y-%m-%d %H:%M:%S')\n" > $dir_resultados_teste/$apelido-experimento.log
     echo -e "Os resultados do experimento serão salvos em ↓:"
     echo -e "${verde}$dir_resultados_teste${normal}\n"
     echo -e "Nome do teste: ${verde}${teste}${normal}"
@@ -686,7 +685,7 @@ for teste in "${testes[@]}"; do
     fi
 
     echo
-    echo -e "\nFim: $(date '+%Y-%m-%d %H:%M:%S')" >> $dir_resultados/$apelido-experimento.log
+    echo -e "\nFim: $(date '+%Y-%m-%d %H:%M:%S')" >> $dir_resultados_teste/$apelido-experimento.log
 done
 
 if [ -n "$sumarizador_receita" ]; then
