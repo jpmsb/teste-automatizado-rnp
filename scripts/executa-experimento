@@ -651,9 +651,6 @@ for teste in "${testes[@]}"; do
         fi
     fi
 
-    # mata_processos
-    # sobe_cenario
-
     echo -e "\n${linha_horizontal}\n"
     echo -e "\nInício: $(date '+%Y-%m-%d %H:%M:%S')\n" > $dir_resultados_teste/$apelido-experimento.log
     echo -e "Os resultados do experimento serão salvos em ↓:"
@@ -691,7 +688,6 @@ for teste in "${testes[@]}"; do
     echo
     echo -e "\nFim: $(date '+%Y-%m-%d %H:%M:%S')" >> $dir_resultados/$apelido-experimento.log
 done
-# mata_processos
 
 if [ -n "$sumarizador_receita" ]; then
     echo -e "\nSumarizando resultados usando a rotina abaixo ↓:"
