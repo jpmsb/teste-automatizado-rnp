@@ -371,6 +371,7 @@ roda_teste(){
     local duracao="$4"
     local dir_resultados_teste="$5"
     local apelido="$6"
+    local log_teste="$7"
     local nucleo_servidor=""
     local nucleo_cliente=""
     local nucleo=""
@@ -416,19 +417,20 @@ roda_teste(){
         texto_banda=", com banda de ${banda}"
     fi
 
-    echo -e "\n${verde}Executando a rodada $rodada_atual do teste de $duracao segundos${texto_banda}...${normal}\n"
+    mostrar_e_registrar "\n${verde}Executando a rodada $rodada_atual do teste de $duracao segundos${texto_banda}...${normal}\n" "$log_teste"
     mkdir -p $dir_resultados_teste/rodada_$rodada_atual
 
-    echo -e "${amarelo}Servidor iniciado${texto_nucleo_servidor}...${normal}"
+    mostrar_e_registrar "${amarelo}Servidor iniciado${texto_nucleo_servidor}...${normal}" "$log_teste"
     $comando_servidor -J --one-off -i 1 > $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.json 2>&1 < /dev/null &
 
     sleep 1
-    echo -e "${amarelo}Preparando o mpstat...${normal}\r"
+    mostrar_e_registrar "${amarelo}Preparando o mpstat...${normal}\r" "$log_teste"
     numactl -C 0 $dir_este_script/mpstat-trigger $duracao $dir_resultados_teste/rodada_$rodada_atual rodada_$rodada_atual-${apelido}-mpstat.log 2>&1 < /dev/null &
 
     sleep 1
     setsid $comando_cliente $args_extras -J -i 1 -t $duracao > $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.json 2>&1 < /dev/null &
 
+    mostrar_e_registrar "${amarelo}Cliente iniciado${texto_nucleo_cliente}...${normal}" "$log_teste" ; printf "\e[1A\r"
     contagem_regressiva $duracao "${amarelo}Cliente iniciado${texto_nucleo_cliente}...${normal}"
     wait $(jobs -p)
 
@@ -640,8 +642,7 @@ for teste in "${testes[@]}"; do
     apelido=$(echo "$teste" | sed 's/ /_/g')
     testes_normalizados+=("$apelido")
     dir_resultados_teste="$dir_resultados/$apelido"
-
-    echo -e "\nInício: $(date '+%Y-%m-%d %H:%M:%S')\n" > $dir_resultados_teste/$apelido-experimento.log
+    log_teste="$dir_resultados_teste/$apelido-experimento.log"
 
     rm -rf $dir_resultados_teste
     mkdir -p $dir_resultados_teste
@@ -658,41 +659,42 @@ for teste in "${testes[@]}"; do
         fi
     fi
 
-    echo -e "\n${linha_horizontal}\n"
-    echo -e "Os resultados do experimento serão salvos em ↓:"
-    echo -e "${verde}$dir_resultados_teste${normal}\n"
-    echo -e "Nome do teste: ${verde}${teste}${normal}"
+    echo -e "\nInício: $(date '+%Y-%m-%d %H:%M:%S')" > "$log_teste"
+    mostrar_e_registrar "\n${linha_horizontal}\n" "$log_teste"
+    mostrar_e_registrar "Os resultados do experimento serão salvos em ↓:" "$log_teste"
+    mostrar_e_registrar "${verde}$dir_resultados_teste${normal}\n" "$log_teste"
+    mostrar_e_registrar "Nome do teste: ${verde}${teste}${normal}" "$log_teste"
 
     if [ -n "$descricao_teste" ]; then
-        echo -e "Descrição do teste: ${verde}${descricao_teste}${normal}"
+        mostrar_e_registrar "Descrição do teste: ${verde}${descricao_teste}${normal}" "$log_teste"
     fi
 
     if [ -z "$arquivo_receita" ]; then
-        echo -e "Quantidade de rodadas: ${verde}${rodadas}${normal}"
-        echo -e "Duração de cada rodada: ${verde}${duracao} segundos${normal}"
+        mostrar_e_registrar "Quantidade de rodadas: ${verde}${rodadas}${normal}" "$log_teste"
+        mostrar_e_registrar "Duração de cada rodada: ${verde}${duracao} segundos${normal}" "$log_teste"
     fi
 
     if [ -n "$preparo_antes" ]; then
-        echo -e "\nPreparando o ambiente antes do teste usando a rotina abaixo ↓:"
-        echo -e "${verde}${preparo_antes}${normal}"
+        mostrar_e_registrar "\nPreparando o ambiente antes do teste usando a rotina abaixo ↓:" "$log_teste"
+        mostrar_e_registrar "${verde}${preparo_antes}${normal}" "$log_teste"
         bash $preparo_antes > $dir_resultados_teste/$apelido-preparo_antes.log 2>&1
     fi
 
     for rodada_atual in $(seq 1 $rodadas); do
-        echo -e "\n${linha_horizontal}"
-        roda_teste "$rodada_atual" "$comando_cliente" "$comando_servidor" "$duracao" "$dir_resultados_teste" "$apelido"
-        echo -e "\n${linha_horizontal}"
+        mostrar_e_registrar "\n${linha_horizontal}" "$log_teste"
+        roda_teste "$rodada_atual" "$comando_cliente" "$comando_servidor" "$duracao" "$dir_resultados_teste" "$apelido" "$log_teste"
+        mostrar_e_registrar "\n${linha_horizontal}" "$log_teste"
     done
 
     if [ -n "$preparo_depois" ]; then
-        echo -e "\nPreparando o ambiente após o teste usando a rotina abaixo ↓:"
-        echo -e "${verde}${preparo_depois}${normal}"
+        mostrar_e_registrar "\nPreparando o ambiente após o teste usando a rotina abaixo ↓:" "$log_teste"
+        mostrar_e_registrar "${verde}${preparo_depois}${normal}" "$log_teste"
         bash $preparo_depois > $dir_resultados_teste/$apelido-preparo_depois.log 2>&1
-        echo -e "\n${linha_horizontal}\n"
+        mostrar_e_registrar "\n${linha_horizontal}\n" "$log_teste"
     fi
 
     echo
-    echo -e "\nFim: $(date '+%Y-%m-%d %H:%M:%S')" >> $dir_resultados_teste/$apelido-experimento.log
+    echo -e "\nFim: $(date '+%Y-%m-%d %H:%M:%S')" >> "$log_teste"
 done
 
 if [ -n "$sumarizador_receita" ]; then
