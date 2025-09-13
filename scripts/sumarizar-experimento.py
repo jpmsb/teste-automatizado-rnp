@@ -1072,6 +1072,78 @@ def print_summarization(test_name, cpu_usage, vazao_cli_srv_formatada, unidade, 
 
     print(f"\nNúmero de rodadas computadas: {round_count}\n")
 
+def _compute_round_tables_for_test(resultados_dir, test_name, cpu_keys_sorted, fator_vazao, unidade_vazao):
+    """
+    Lê os arquivos por rodada do teste e retorna:
+      - header_cols: cabeçalho "| Rodada | Cliente (...) | Servidor (...) | Perda (%) | CPU 0 (%) | ... |"
+      - lines: linhas da tabela (uma por rodada)
+    """
+    test_dir = os.path.join(resultados_dir, test_name)
+    rounds = get_round_dirs(test_dir)
+
+    # Cabeçalho fixo para todas as tabelas por rodada (usa mesmas CPUs do resumo global)
+    header_cols = ["Rodada", f"Cliente ({unidade_vazao})", f"Servidor ({unidade_vazao})", "Perda (%)"]
+    import re as _re
+    for k in cpu_keys_sorted:
+        idxm = _re.search(r'(\d+)', k or "")
+        idx = idxm.group(1) if idxm else k
+        header_cols.append(f"CPU {idx} (%)")
+
+    lines = []
+    lines.append("| " + " | ".join(header_cols) + " |")
+    lines.append("|" + "|".join([" --- "]*len(header_cols)) + "|")
+
+    for rodada in rounds:
+        rodada_path = os.path.join(test_dir, rodada)
+
+        # --- Vazão por rodada ---
+        cli_bps = srv_bps = 0.0
+        client_file = os.path.join(rodada_path, f"{rodada}-{test_name}-iperf3_client.csv")
+        server_file = os.path.join(rodada_path, f"{rodada}-{test_name}-iperf3_server.csv")
+        if os.path.exists(client_file):
+            df_cli = pd.read_csv(client_file)
+            if "bits_por_segundo" in df_cli.columns and len(df_cli) > 0:
+                cli_bps = float(df_cli["bits_por_segundo"].mean())
+        if os.path.exists(server_file):
+            df_srv = pd.read_csv(server_file)
+            if "bits_por_segundo" in df_srv.columns and len(df_srv) > 0:
+                srv_bps = float(df_srv["bits_por_segundo"].mean())
+
+        cli_v = f"{(cli_bps / fator_vazao):.2f}"
+        srv_v = f"{(srv_bps / fator_vazao):.2f}"
+
+        # --- Perda por rodada ---
+        perda_val = ""
+        if os.path.exists(server_file):
+            df_srv = pd.read_csv(server_file)
+            if "porcentagem_pacotes_perdidos" in df_srv.columns and len(df_srv) > 0:
+                perda_val = f"{float(df_srv['porcentagem_pacotes_perdidos'].mean()):.4f}"
+        if perda_val == "" and os.path.exists(client_file):
+            df_cli = pd.read_csv(client_file)
+            if "retransmissoes" in df_cli.columns and len(df_cli) > 0:
+                perda_val = f"{float(df_cli['retransmissoes'].mean()):.4f}"
+
+        # --- CPU por rodada ---
+        cpu_vals = []
+        mpstat_file = os.path.join(rodada_path, f"{rodada}-{test_name}-mpstat.csv")
+        cpu_means = {}
+        if os.path.exists(mpstat_file):
+            df_mp = pd.read_csv(mpstat_file)
+            for col in df_mp.columns:
+                try:
+                    cpu_means[col] = float(df_mp[col].mean())
+                except Exception:
+                    pass
+        for k in cpu_keys_sorted:
+            v = ""
+            if k in cpu_means:
+                v = f"{cpu_means[k]:.2f}"
+            cpu_vals.append(v)
+
+        lines.append("| " + " | ".join([rodada, cli_v, srv_v, perda_val] + cpu_vals) + " |")
+
+    return header_cols, lines
+
 def write_markdown_summary(sumarizado_dir, tests, cpu_aggregate, vazao_aggregate, perda_aggregate):
     # 1) Determina a maior unidade de vazão entre todos os testes
     all_bps = []
