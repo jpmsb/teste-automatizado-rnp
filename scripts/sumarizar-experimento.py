@@ -1144,6 +1144,10 @@ def _compute_round_tables_for_test(resultados_dir, test_name, cpu_keys_sorted, f
 
     return header_cols, lines
 
+def _cpu_idx(k):
+    m = re.search(r'(\d+)', k or "")
+    return int(m.group(1)) if m else 10**9
+
 def write_markdown_summary(sumarizado_dir, tests, cpu_aggregate, vazao_aggregate, perda_aggregate):
     # 1) Determina a maior unidade de vazão entre todos os testes
     all_bps = []
