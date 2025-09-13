@@ -1295,7 +1295,6 @@ def main():
     plot_cpu_comparativo_por_nucleo(sumarizado_dir, tests, cpu_aggregate)
     plot_perda_comparativo_por_teste(sumarizado_dir, tests, perda_aggregate)
     plot_vazao_comparativo_por_teste(sumarizado_dir, tests, vazao_aggregate)
-    # Chamada da nova função: gráfico somente da vazão do servidor para cada teste.
     plot_vazao_servidor_comparativo(sumarizado_dir, tests, vazao_aggregate)
 
     agg_perda_temp = aggregate_all_perda_temporal(resultados_dir, tests)
