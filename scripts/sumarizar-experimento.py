@@ -1148,47 +1148,42 @@ def _cpu_idx(k):
     m = re.search(r'(\d+)', k or "")
     return int(m.group(1)) if m else 10**9
 
-def write_markdown_summary(sumarizado_dir, tests, cpu_aggregate, vazao_aggregate, perda_aggregate):
+def write_markdown_summary(sumarizado_dir, tests, cpu_aggregate, vazao_aggregate, perda_aggregate, resultados_dir=None):
     # 1) Determina a maior unidade de vazão entre todos os testes
     all_bps = []
     for t in tests:
         if t in vazao_aggregate:
-            # vazao_aggregate[t] = ( (cli_bps, cli_err), (srv_bps, srv_err) )
             cli_bps = vazao_aggregate[t][0][0] if vazao_aggregate[t][0] else 0.0
             srv_bps = vazao_aggregate[t][1][0] if vazao_aggregate[t][1] else 0.0
             all_bps.extend([cli_bps, srv_bps])
     max_bps = max(all_bps) if all_bps else 0.0
     unidade, fator = choose_bps_scale(max_bps if max_bps > 0 else 1.0)
 
-    # 2) Descobre todos os núcleos de CPU
+    # Descobre todos os núcleos de CPU (para colunas fixas em todas as tabelas)
     cpu_keys_set = set()
     for t in tests:
         if t in cpu_aggregate and cpu_aggregate[t]:
             cpu_keys_set.update(cpu_aggregate[t].keys())
+
     # Ordena as CPUs
-    def _cpu_idx(k):
-        m = re.search(r'(\d+)', k or "")
-        return int(m.group(1)) if m else 10**9
     cpu_keys_sorted = sorted(cpu_keys_set, key=_cpu_idx)
 
-    # 3) Monta o cabeçalho da tabela
+    # Tabela com os resultados de todos os testes
     header_cols = ["Nome do teste",
                    f"Cliente ({unidade})",
                    f"Servidor ({unidade})",
                    "Perda (%)"]
-    # Mostra as porcentagens de CPU
     for k in cpu_keys_sorted:
         idxm = re.search(r'(\d+)', k or "")
         idx = idxm.group(1) if idxm else k
         header_cols.append(f"CPU {idx} (%)")
 
-    # 4) Linhas da tabela (uma por teste, respeitando a ordem informada pelo usuário)
+    # Linhas da tabela, sendo uma por teste, respeitando a ordem informada pelo usuário
     lines = []
     lines.append("| " + " | ".join(header_cols) + " |")
     lines.append("|" + "|".join([" --- "]*len(header_cols)) + "|")
 
     for t in tests:
-        # Nome do teste
         nome = format_label(t)
 
         # Vazão
@@ -1208,7 +1203,6 @@ def write_markdown_summary(sumarizado_dir, tests, cpu_aggregate, vazao_aggregate
         else:
             perda_val = ""
 
-        # CPUs
         cpu_vals = []
         for k in cpu_keys_sorted:
             v = ""
@@ -1218,17 +1212,32 @@ def write_markdown_summary(sumarizado_dir, tests, cpu_aggregate, vazao_aggregate
                     v = f"{mean_err[0]:.2f}"
             cpu_vals.append(v)
 
-        row = [nome, cli_val, srv_val, perda_val] + cpu_vals
-        lines.append("| " + " | ".join(row) + " |")
+        lines.append("| " + " | ".join([nome, cli_val, srv_val, perda_val] + cpu_vals) + " |")
 
-    # 5) Escreve arquivo
+    # Gerando o arquvivo Markdown
     prefix = "sumarizado-" + "-".join(tests)
     md_path = os.path.join(sumarizado_dir, f"{prefix}.md")
     with open(md_path, "w", encoding="utf-8") as f:
-        # Escreve no arquivo
+        # Título e resumo global
         f.write("# Sumarização dos resultados\n\n")
-        f.write("Abaixo, está a tabela com a sumarização dos resultados dos testes:\n\n")
-        f.write("\n".join(lines) + "\n")
+        f.write("## Geral\n\n")
+        f.write("Abaixo está a tabela com a sumarização global dos testes:\n\n")
+        f.write("\n".join(lines) + "\n\n")
+
+        # Tabelas de cada teste
+        if resultados_dir is None:
+            # quando não informado, assume que o diretório pai de sumarizado-... é o diretório de resultados
+            resultados_dir = os.path.dirname(sumarizado_dir)
+
+        f.write("## Por teste\n\n")
+        for t in tests:
+            f.write(f"### {format_label(t)}\n\n")
+            f.write(f"Tabela com os dados de cada rodada para o teste \"{format_label(t)}\".\n\n")
+            _hdr, round_lines = _compute_round_tables_for_test(
+                resultados_dir, t, cpu_keys_sorted, fator, unidade
+            )
+            f.write("\n".join(round_lines) + "\n\n")
+
     print(f"Arquivo Markdown gerado: {md_path}")
 
 def main():
