@@ -1053,9 +1053,9 @@ def plot_vazao_com_referencia(resultados_dir, tests, vazao_aggregate, ref_srv, r
     plt.savefig(filepath_svg)
     plt.close()
 
-##############################
-# FUNÇÃO DE SUMARIZAÇÃO E MAIN
-##############################
+#####################################################
+# FUNÇÃO DE SUMARIZAÇÃO, GERAÇÃO DO MARKDOWN E MAIN #
+#####################################################
 def print_summarization(test_name, cpu_usage, vazao_cli_srv_formatada, unidade, perda, round_count):
     print(f"\nResumo para {format_label(test_name)}:")
     print("\nUso de CPU por núcleo:")
