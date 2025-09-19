@@ -1094,6 +1094,7 @@ def _compute_round_tables_for_test(resultados_dir, test_name, cpu_keys_sorted, f
 
     for rodada in rounds:
         rodada_path = os.path.join(test_dir, rodada)
+        rodada_numero = re.search(r'rodada_(\d+)', rodada).group(1)
 
         # --- Vazão por rodada ---
         cli_bps = srv_bps = 0.0
@@ -1139,7 +1140,7 @@ def _compute_round_tables_for_test(resultados_dir, test_name, cpu_keys_sorted, f
                 v = f"{cpu_means[k]:.2f}"
             cpu_vals.append(v)
 
-        lines.append("| " + " | ".join([rodada, cli_v, srv_v, perda_val] + cpu_vals) + " |")
+        lines.append("| " + " | ".join([rodada_numero, cli_v, srv_v, perda_val] + cpu_vals) + " |")
 
     return header_cols, lines
 
