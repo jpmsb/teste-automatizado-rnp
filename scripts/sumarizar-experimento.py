@@ -1221,7 +1221,7 @@ def write_markdown_summary(sumarizado_dir, tests, cpu_aggregate, vazao_aggregate
         # Título e resumo global
         f.write("# Sumarização dos resultados\n\n")
         f.write("## Geral\n\n")
-        f.write("Abaixo está a tabela com a sumarização global dos testes:\n\n")
+        f.write("Abaixo, está a tabela com a sumarização global dos testes:\n\n")
         f.write("\n".join(lines) + "\n\n")
 
         # Tabelas de cada teste
