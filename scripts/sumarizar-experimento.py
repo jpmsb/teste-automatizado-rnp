@@ -1083,9 +1083,8 @@ def _compute_round_tables_for_test(resultados_dir, test_name, cpu_keys_sorted, f
 
     # Cabeçalho fixo para todas as tabelas por rodada (usa mesmas CPUs do resumo global)
     header_cols = ["Rodada", f"Cliente ({unidade_vazao})", f"Servidor ({unidade_vazao})", "Perda (%)"]
-    import re as _re
     for k in cpu_keys_sorted:
-        idxm = _re.search(r'(\d+)', k or "")
+        idxm = re.search(r'(\d+)', k or "")
         idx = idxm.group(1) if idxm else k
         header_cols.append(f"CPU {idx} (%)")
 
