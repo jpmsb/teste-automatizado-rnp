@@ -1090,7 +1090,7 @@ def _compute_round_tables_for_test(resultados_dir, test_name, cpu_keys_sorted, f
 
     lines = []
     lines.append("| " + " | ".join(header_cols) + " |")
-    lines.append("|" + "|".join([" --- "]*len(header_cols)) + "|")
+    lines.append("|" + "|".join([":---:"]*len(header_cols)) + "|")
 
     for rodada in rounds:
         rodada_path = os.path.join(test_dir, rodada)
@@ -1181,7 +1181,7 @@ def write_markdown_summary(sumarizado_dir, tests, cpu_aggregate, vazao_aggregate
     # Linhas da tabela, sendo uma por teste, respeitando a ordem informada pelo usuário
     lines = []
     lines.append("| " + " | ".join(header_cols) + " |")
-    lines.append("|" + "|".join([" --- "]*len(header_cols)) + "|")
+    lines.append("|" + "|".join([":---:"]*len(header_cols)) + "|")
 
     for t in tests:
         nome = format_label(t)
