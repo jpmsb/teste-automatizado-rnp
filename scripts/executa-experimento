@@ -665,9 +665,16 @@ for teste in "${testes[@]}"; do
     mostrar_e_registrar "${verde}$dir_resultados_teste${normal}\n" "$log_teste"
     mostrar_e_registrar "Nome do teste: ${verde}${teste}${normal}" "$log_teste"
 
+    echo "[Teste]" > $dir_resultados_teste/$apelido-conf.ini
+    echo "Nome=${teste}" >> $dir_resultados_teste/$apelido-conf.ini
+
     if [ -n "$descricao_teste" ]; then
         mostrar_e_registrar "Descrição do teste: ${verde}${descricao_teste}${normal}" "$log_teste"
+        echo "Descricao=${descricao_teste}" >> $dir_resultados_teste/$apelido-conf.ini
     fi
+
+    echo "ComandoCliente=${comando_cliente}" >> $dir_resultados_teste/$apelido-conf.ini
+    echo "ComandoServidor=${comando_servidor}" >> $dir_resultados_teste/$apelido-conf.ini
 
     if [ -z "$arquivo_receita" ]; then
         mostrar_e_registrar "Quantidade de rodadas: ${verde}${rodadas}${normal}" "$log_teste"
@@ -677,7 +684,10 @@ for teste in "${testes[@]}"; do
     if [ -n "$preparo_antes" ]; then
         mostrar_e_registrar "\nPreparando o ambiente antes do teste usando a rotina abaixo ↓:" "$log_teste"
         mostrar_e_registrar "${verde}${preparo_antes}${normal}" "$log_teste"
+        echo "PreparoAntes=${preparo_antes}" >> $dir_resultados_teste/$apelido-conf.ini
         bash $preparo_antes > $dir_resultados_teste/$apelido-preparo_antes.log 2>&1
+    else
+        echo "; PreparoAntes=" >> $dir_resultados_teste/$apelido-conf.ini
     fi
 
     for rodada_atual in $(seq 1 $rodadas); do
@@ -689,8 +699,11 @@ for teste in "${testes[@]}"; do
     if [ -n "$preparo_depois" ]; then
         mostrar_e_registrar "\nPreparando o ambiente após o teste usando a rotina abaixo ↓:" "$log_teste"
         mostrar_e_registrar "${verde}${preparo_depois}${normal}" "$log_teste"
+        echo "PreparoDepois=${preparo_depois}" >> $dir_resultados_teste/$apelido-conf.ini
         bash $preparo_depois > $dir_resultados_teste/$apelido-preparo_depois.log 2>&1
         mostrar_e_registrar "\n${linha_horizontal}\n" "$log_teste"
+    else
+        echo "; PreparoDepois=" >> $dir_resultados_teste/$apelido-conf.ini
     fi
 
     echo
