@@ -671,6 +671,8 @@ for teste in "${testes[@]}"; do
     if [ -n "$descricao_teste" ]; then
         mostrar_e_registrar "Descrição do teste: ${verde}${descricao_teste}${normal}" "$log_teste"
         echo "Descricao=${descricao_teste}" >> $dir_resultados_teste/$apelido-conf.ini
+    else
+        echo "; Descricao=" >> $dir_resultados_teste/$apelido-conf.ini
     fi
 
     echo "ComandoCliente=${comando_cliente}" >> $dir_resultados_teste/$apelido-conf.ini
