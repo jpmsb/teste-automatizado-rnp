@@ -51,9 +51,9 @@ def format_value(v_bps, fator):
 def _safe(v):
         return 0.0 if v is None or (isinstance(v, float) and np.isnan(v)) else float(v)
 
-##############################
-# FUNÇÕES DE PLOTAGEM (com error bars)
-##############################
+########################
+# FUNÇÕES DE PLOTAGEM  #
+########################
 def plot_cpu_usage_for_round(test_dir, test_name):
     rounds = get_round_dirs(test_dir)
     overall_cpu_values = {}  # acumula os valores de cada núcleo em cada rodada
@@ -82,7 +82,7 @@ def plot_cpu_usage_for_round(test_dir, test_name):
         valores = [cpu_usage_mean[c] for c in cores_from_header]
         err_values = [cpu_usage_err[c] for c in cores_from_header]
 
-        # topo dinâmico
+        # Ajuste para que o topo se ajuste à barra e o valor de amplitude no topo dela
         y_max = max((v + e) for v, e in zip(valores, err_values)) if valores else 0.0
         top = (y_max * 1.08) if y_max > 0 else 1.0            # mantém 8% de folga no topo
         label_offset = 0.005 * top                            # distância do valor até o topo da barra
@@ -127,7 +127,7 @@ def plot_cpu_usage_for_test(overall_cpu_values, test_dir, test_name):
     valores = [overall_cpu[c] for c in cores_from_header]
     err_values = [overall_cpu_err[c] for c in cores_from_header]
 
-    # ajusta o topo para que caiba o rótulo
+    # Ajuste para que o topo se ajuste à barra e o valor de amplitude no topo dela
     y_max = max((_safe(v) + _safe(e)) for v, e in zip(valores, err_values)) if valores else 0.0
     top = (y_max * 1.08) if y_max > 0 else 1.0   # 8% de folga no topo
     label_offset = 0.005 * top                   # distância do valor até o topo da barra
@@ -135,7 +135,7 @@ def plot_cpu_usage_for_test(overall_cpu_values, test_dir, test_name):
     plt.figure(figsize=(8,6))
     bars = plt.bar(cores, valores, yerr=err_values, capsize=5)
 
-    # rótulos acima das barras
+    # Rótulos acima das barras
     for i, bar in enumerate(bars):
         e = _safe(err_values[i]) if i < len(err_values) else 0.0
         y = bar.get_height() + e + label_offset
@@ -197,7 +197,7 @@ def plot_vazao_barra_for_test(test_dir, test_name):
         valores_bps = [mean_client_bps, mean_server_bps]
         erros_bps   = [err_client_bps,  err_server_bps]
 
-        # Escolhe a escala ótima para esta rodada
+        # Encontra a escala ótima para esta rodada
         max_bps = max(valores_bps) if valores_bps else 0.0
         unidade, fator = choose_bps_scale(max_bps if max_bps > 0 else 1.0)
 
@@ -205,7 +205,7 @@ def plot_vazao_barra_for_test(test_dir, test_name):
         valores_norm = [v / fator for v in valores_bps]
         erros_norm   = [e / fator for e in erros_bps]
 
-        # Topo dinâmico com (valor+erro) e folga reduzida p/ rótulos
+        # Ajuste para que o topo se ajuste à barra e o valor de amplitude no topo dela
         y_max = max((_safe(v) + _safe(e)) for v, e in zip(valores_norm, erros_norm)) if valores_norm else 0.0
         top = (y_max * 1.08) if y_max > 0 else 1.0
         label_offset = 0.012 * top
@@ -258,7 +258,7 @@ def plot_vazao_barra_for_test(test_dir, test_name):
         valores_norm = [v / fator for v in valores_bps]
         erros_norm   = [e / fator for e in erros_bps]
 
-        # Topo dinâmico e folga para rótulos (agregado)
+        # Ajuste para que o topo se ajuste à barra e o valor de amplitude no topo dela
         y_max = max((_safe(v) + _safe(e)) for v, e in zip(valores_norm, erros_norm)) if valores_norm else 0.0
         top = (y_max * 1.08) if y_max > 0 else 1.0
         label_offset = 0.012 * top
@@ -372,7 +372,7 @@ def plot_perda_barra_for_test(test_dir, test_name):
         plt.figure(figsize=(6,5))
         plt.bar(["Perda"], [media_perda], yerr=[err_perda], capsize=5)
 
-        # Ajusta o topo para que caiba o rótulo (agregado)
+        # Ajuste para que o topo se ajuste à barra e o valor de amplitude no topo dela
         y_max = _safe(media_perda) + _safe(err_perda)
         top = (y_max * 1.08) if y_max > 0 else 1.0
         label_offset = 0.005 * top
@@ -619,7 +619,7 @@ def plot_cpu_comparativo_por_rodada(test_dir, test_name):
         bars = plt.bar(x + i*width, values, width, yerr=err_values, capsize=5, label=f"Rodada {round_number}")
         all_bars_and_errs.append((bars, err_values))
 
-    # Ajusta o topo para que caiba o rótulo
+    # Ajuste para que o topo se ajuste à barra e o valor de amplitude no topo dela
     top = (y_max_total * 1.08) if y_max_total > 0 else 1.0   # 8% de folga no topo
     label_offset = 0.005 * top                               # distância do valor até o topo da barra
     plt.ylim(bottom=0, top=top)
@@ -659,7 +659,7 @@ def plot_cpu_comparativo_por_teste(resultados_dir, tests, cpu_aggregate):
 
     plt.figure(figsize=(10,6))
 
-    # acompanhar o maior (valor + erro) global e guardar barras para rotular depois
+    # Encontrar o maior valor de topo para ajustar o eixo y
     y_max_total = 0.0
     all_bars_and_errs = []  # [(bars, err_values)]
 
@@ -681,7 +681,7 @@ def plot_cpu_comparativo_por_teste(resultados_dir, tests, cpu_aggregate):
             y_max_local = max(v + (e if not np.isnan(e) else 0.0) for v, e in zip(values, err_values))
             y_max_total = max(y_max_total, y_max_local)
 
-    # topo dinâmico e folga pequena para os rótulos
+    # Ajuste para que o topo se ajuste à barra e o valor de amplitude no topo dela
     top = (y_max_total * 1.08) if y_max_total > 0 else 1.0   # 8% de folga no topo
     label_offset = 0.005 * top                               # distância do valor até o topo da barra
     plt.ylim(bottom=0, top=top)
@@ -816,7 +816,7 @@ def plot_perda_comparativo_por_rodada(test_dir, test_name):
         ylabel = "Perda/Retransmissões"
         title_tipo = "Perda/Retransmissões"
 
-    # Ajusta o topo para que caiba o rótulo
+    # Ajuste para que o topo se ajuste à barra e o valor de amplitude no topo dela
     y_max = max((_safe(v) + _safe(e)) for v, e in zip(values, err_values)) if values else 0.0
     top = (y_max * 1.08) if y_max > 0 else 1.0     # 8% de folga no topo
     label_offset = 0.005 * top                     # distância do valor até o topo da barra
@@ -856,7 +856,7 @@ def plot_perda_comparativo_por_teste(resultados_dir, tests, perda_aggregate):
     values = [perda_aggregate[test][0] for test in tests_sorted]
     err_values = [perda_aggregate[test][1] for test in tests_sorted]
 
-    # Ajusta o topo para que caiba o rótulo
+    # Ajuste para que o topo se ajuste à barra e o valor de amplitude no topo dela
     y_max = max((_safe(v) + _safe(e)) for v, e in zip(values, err_values)) if values else 0.0
     top = (y_max * 1.08) if y_max > 0 else 1.0   # 8% de folga no topo
     label_offset = 0.005 * top                   # distância do valor até o topo da barra
@@ -1011,7 +1011,7 @@ def plot_vazao_comparativo_por_teste(resultados_dir, tests, vazao_aggregate):
     bars1 = plt.bar(x - width/2, client_values, width, yerr=client_err, capsize=5, label="Cliente")
     bars2 = plt.bar(x + width/2, server_values, width, yerr=server_err, capsize=5, label="Servidor")
 
-    # Ajuste do topo para caber os rótulos
+    # Ajuste para que o topo se ajuste à barra e o valor de amplitude no topo dela
     y_max_client = max((_safe(v) + _safe(e) for v, e in zip(client_values, client_err)), default=0.0)
     y_max_server = max((_safe(v) + _safe(e) for v, e in zip(server_values, server_err)), default=0.0)
     y_max_total  = max(y_max_client, y_max_server)
@@ -1103,9 +1103,9 @@ def plot_vazao_servidor_comparativo(resultados_dir, tests, vazao_aggregate):
     plt.savefig(svg_path)
     plt.close()
 
-##############################
-# FUNÇÕES AGREGADAS – SÉRIES TEMPORAIS (usadas apenas para PERDA)
-##############################
+########################################
+# FUNÇÕES AGREGADAS – SÉRIES TEMPORAIS #
+########################################
 def aggregate_perda_temporal_for_test(test_dir, test_name):
     rounds = get_round_dirs(test_dir)
     dfs = []
@@ -1168,9 +1168,9 @@ def plot_perda_temporal_comparativo_por_teste(resultados_dir, tests, perda_tempo
     plt.savefig(svg_path)
     plt.close()
 
-##############################
-# NOVA FUNÇÃO: GRÁFICO COMPARATIVO DE VAZÃO DO SERVIDOR COM REFERÊNCIA
-##############################
+###########################################################
+# GRÁFICO COMPARATIVO DE VAZÃO DO SERVIDOR COM REFERÊNCIA #
+###########################################################
 def plot_vazao_com_referencia(resultados_dir, tests, vazao_aggregate, ref_srv, ref_test):
     """
     Gera um gráfico de barras comparativo da vazão do servidor de cada teste em relação à
@@ -1257,7 +1257,7 @@ def _compute_round_tables_for_test(resultados_dir, test_name, cpu_keys_sorted, f
         rodada_path = os.path.join(test_dir, rodada)
         rodada_numero = re.search(r'rodada_(\d+)', rodada).group(1)
 
-        # --- Vazão por rodada ---
+        # Vazão por rodada
         cli_bps = srv_bps = 0.0
         client_file = os.path.join(rodada_path, f"{rodada}-{test_name}-iperf3_client.csv")
         server_file = os.path.join(rodada_path, f"{rodada}-{test_name}-iperf3_server.csv")
@@ -1273,7 +1273,7 @@ def _compute_round_tables_for_test(resultados_dir, test_name, cpu_keys_sorted, f
         cli_v = f"{(cli_bps / fator_vazao):.2f}"
         srv_v = f"{(srv_bps / fator_vazao):.2f}"
 
-        # --- Perda por rodada ---
+        # Perda por rodada
         perda_val = ""
         if os.path.exists(server_file):
             df_srv = pd.read_csv(server_file)
@@ -1284,7 +1284,7 @@ def _compute_round_tables_for_test(resultados_dir, test_name, cpu_keys_sorted, f
             if "retransmissoes" in df_cli.columns and len(df_cli) > 0:
                 perda_val = f"{float(df_cli['retransmissoes'].mean()):.4f}"
 
-        # --- CPU por rodada ---
+        # CPU por rodada
         cpu_vals = []
         mpstat_file = os.path.join(rodada_path, f"{rodada}-{test_name}-mpstat.csv")
         cpu_means = {}
@@ -1310,7 +1310,7 @@ def _cpu_idx(k):
     return int(m.group(1)) if m else 10**9
 
 def write_markdown_summary(sumarizado_dir, tests, cpu_aggregate, vazao_aggregate, perda_aggregate, resultados_dir=None):
-    # 1) Determina a maior unidade de vazão entre todos os testes
+    # Determina a maior unidade de vazão entre todos os testes
     all_bps = []
     for t in tests:
         if t in vazao_aggregate:
