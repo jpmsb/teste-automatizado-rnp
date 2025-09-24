@@ -48,6 +48,9 @@ def choose_bps_scale(max_bps: float):
 def format_value(v_bps, fator):
     return v_bps / fator
 
+def _safe(v):
+        return 0.0 if v is None or (isinstance(v, float) and np.isnan(v)) else float(v)
+
 ##############################
 # FUNÇÕES DE PLOTAGEM (com error bars)
 ##############################
