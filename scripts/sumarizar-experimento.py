@@ -51,6 +51,26 @@ def format_value(v_bps, fator):
 def _safe(v):
         return 0.0 if v is None or (isinstance(v, float) and np.isnan(v)) else float(v)
 
+def get_test_display_name_from_conf(test_dir: str, test_name: str) -> str:
+    """
+    Tenta encontrar o nome amigável do teste no arquivo INI de configuração.
+    """
+    try:
+        ini_path = os.path.join(test_dir, f"{test_name}-conf.ini")
+        if os.path.exists(ini_path):
+            cfg = configparser.ConfigParser()
+            # Mantém case-sensitivity das chaves
+            cfg.optionxform = str
+            cfg.read(ini_path, encoding="utf-8")
+            if cfg.has_section("Teste") and cfg.has_option("Teste", "Nome"):
+                nome = cfg.get("Teste", "Nome", fallback="").strip()
+                if nome:
+                    return nome
+    except Exception as e:
+        # Não interrompe o fluxo caso o INI esteja ausente/malformado
+        print(f"Aviso: falha ao ler '{test_name}-conf.ini': {e}")
+    return format_label(test_name)
+
 ########################
 # FUNÇÕES DE PLOTAGEM  #
 ########################
