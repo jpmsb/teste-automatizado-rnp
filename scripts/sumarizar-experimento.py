@@ -57,6 +57,7 @@ def _safe(v):
 def plot_cpu_usage_for_round(test_dir, test_name):
     rounds = get_round_dirs(test_dir)
     overall_cpu_values = {}  # acumula os valores de cada núcleo em cada rodada
+
     count = 0
     for rodada in rounds:
         rodada_path = os.path.join(test_dir, rodada)
@@ -64,16 +65,16 @@ def plot_cpu_usage_for_round(test_dir, test_name):
         if not os.path.exists(mpstat_file):
             print(f"Aviso: {mpstat_file} não encontrado.")
             continue
+
         df = pd.read_csv(mpstat_file)
-        cpu_usage_mean = {}
-        cpu_usage_err = {}
+        cpu_usage_mean, cpu_usage_err = {}, {}
         n = len(df)
         for col in df.columns:
             m = df[col].mean()
-            std = df[col].std()
-            err = 1.96 * std / np.sqrt(n)
-            cpu_usage_mean[col] = m
-            cpu_usage_err[col] = err
+            std = df[col].std(ddof=1)
+            err = 1.96 * std / np.sqrt(n) if n > 1 else 0.0
+            cpu_usage_mean[col] = float(m)
+            cpu_usage_err[col]  = float(err)
 
         cores_from_header = list(cpu_usage_mean.keys())
         cores = [re.search(r'\d+', c).group() for c in cores_from_header]
@@ -81,22 +82,32 @@ def plot_cpu_usage_for_round(test_dir, test_name):
         valores = [cpu_usage_mean[c] for c in cores_from_header]
         err_values = [cpu_usage_err[c] for c in cores_from_header]
 
+        # topo dinâmico
+        y_max = max((v + e) for v, e in zip(valores, err_values)) if valores else 0.0
+        top = (y_max * 1.08) if y_max > 0 else 1.0            # mantém 8% de folga no topo
+        label_offset = 0.005 * top                            # distância do valor até o topo da barra
+
         plt.figure(figsize=(8,6))
         bars = plt.bar(cores, valores, yerr=err_values, capsize=5)
-        for bar in bars:
-            plt.text(bar.get_x() + bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
+
+        for i, bar in enumerate(bars):
+            e = err_values[i] if i < len(err_values) else 0.0
+            y = bar.get_height() + e + label_offset
+            plt.text(bar.get_x() + bar.get_width()/2, y, f"{bar.get_height():.2f}",
                      ha='center', va='bottom')
+
         plt.ylabel("Uso médio de CPU (%)")
         plt.xlabel("Núcleo")
         plt.title(f"Uso de CPU - {format_label(rodada)} - {format_label(test_name)}")
-        plt.ylim(bottom=0)
+        plt.ylim(bottom=0, top=top)
+
         png_path = os.path.join(rodada_path, f"{rodada}-{test_name}-uso_de_cpu_barra.png")
         svg_path = os.path.join(rodada_path, f"{rodada}-{test_name}-uso_de_cpu_barra.svg")
         plt.tight_layout()
         plt.savefig(png_path)
         plt.savefig(svg_path)
         plt.close()
-        # Acumula os valores por núcleo
+
         for core, value in cpu_usage_mean.items():
             overall_cpu_values.setdefault(core, []).append(value)
         count += 1
@@ -108,7 +119,7 @@ def plot_cpu_usage_for_test(overall_cpu_values, test_dir, test_name):
     overall_cpu_err = {}
     for core, values in overall_cpu_values.items():
         overall_cpu[core] = np.mean(values)
-        overall_cpu_err[core] = 1.96 * np.std(values, ddof=1) / np.sqrt(len(values))
+        overall_cpu_err[core] = 1.96 * np.std(values, ddof=1) / np.sqrt(len(values)) if len(values) > 1 else 0.0
 
     cores_from_header = list(overall_cpu.keys())
     cores = [re.search(r'\d+', c).group() for c in cores_from_header]
@@ -116,21 +127,33 @@ def plot_cpu_usage_for_test(overall_cpu_values, test_dir, test_name):
     valores = [overall_cpu[c] for c in cores_from_header]
     err_values = [overall_cpu_err[c] for c in cores_from_header]
 
+    # ajusta o topo para que caiba o rótulo
+    y_max = max((_safe(v) + _safe(e)) for v, e in zip(valores, err_values)) if valores else 0.0
+    top = (y_max * 1.08) if y_max > 0 else 1.0   # 8% de folga no topo
+    label_offset = 0.005 * top                   # distância do valor até o topo da barra
+
     plt.figure(figsize=(8,6))
     bars = plt.bar(cores, valores, yerr=err_values, capsize=5)
-    for bar in bars:
-        plt.text(bar.get_x() + bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
-                    ha='center', va='bottom')
+
+    # rótulos acima das barras
+    for i, bar in enumerate(bars):
+        e = _safe(err_values[i]) if i < len(err_values) else 0.0
+        y = bar.get_height() + e + label_offset
+        plt.text(bar.get_x() + bar.get_width()/2, y, f"{bar.get_height():.2f}",
+                 ha='center', va='bottom')
+
     plt.ylabel("Uso médio de CPU (%)")
     plt.xlabel("Núcleo")
     plt.title(f"{format_label(test_name)} - Uso de CPU (Média das Rodadas)")
-    plt.ylim(bottom=0)
+    plt.ylim(bottom=0, top=top)
+
     png_path = os.path.join(test_dir, f"{test_name}-uso_de_cpu_barra.png")
     svg_path = os.path.join(test_dir, f"{test_name}-uso_de_cpu_barra.svg")
     plt.tight_layout()
     plt.savefig(png_path)
     plt.savefig(svg_path)
     plt.close()
+
     overall_cpu_agg = {core: (overall_cpu[core], overall_cpu_err[core]) for core in overall_cpu}
     return overall_cpu_agg
 
@@ -158,49 +181,51 @@ def plot_vazao_barra_for_test(test_dir, test_name):
         if col_client and len(df_client) > 0:
             n_client = len(df_client)
             mean_client_bps = float(df_client[col_client].mean())
-            err_client_bps  = float(1.96 * df_client[col_client].std(ddof=1) / np.sqrt(n_client))
-
+            err_client_bps  = float(1.96 * df_client[col_client].std(ddof=1) / np.sqrt(n_client)) if n_client > 1 else 0.0
         else:
             mean_client_bps = err_client_bps = 0.0
 
         if col_server and len(df_server) > 0:
             n_server = len(df_server)
             mean_server_bps = float(df_server[col_server].mean())
-            err_server_bps  = float(1.96 * df_server[col_server].std(ddof=1) / np.sqrt(n_server))
-
+            err_server_bps  = float(1.96 * df_server[col_server].std(ddof=1) / np.sqrt(n_server)) if n_server > 1 else 0.0
         else:
             mean_server_bps = err_server_bps = 0.0
 
         # Armazena os valores para o gráfico desta rodada em bits por segundo
         labels = ['Cliente', 'Servidor']
-        valores_bps   = [mean_client_bps, mean_server_bps]
-        erros_bps     = [err_client_bps,  err_server_bps]
+        valores_bps = [mean_client_bps, mean_server_bps]
+        erros_bps   = [err_client_bps,  err_server_bps]
 
         # Escolhe a escala ótima para esta rodada
         max_bps = max(valores_bps) if valores_bps else 0.0
-        unidade, fator = choose_bps_scale(max_bps)
+        unidade, fator = choose_bps_scale(max_bps if max_bps > 0 else 1.0)
 
         # Normaliza valores/erros para a escala escolhida
         valores_norm = [v / fator for v in valores_bps]
         erros_norm   = [e / fator for e in erros_bps]
 
+        # Topo dinâmico com (valor+erro) e folga reduzida p/ rótulos
+        y_max = max((_safe(v) + _safe(e)) for v, e in zip(valores_norm, erros_norm)) if valores_norm else 0.0
+        top = (y_max * 1.08) if y_max > 0 else 1.0
+        label_offset = 0.012 * top
+
         x = np.arange(len(labels))
         width = 0.3
         plt.figure(figsize=(8,6))
         bars = plt.bar(x, valores_norm, width, yerr=erros_norm, capsize=5)
-        for bar, raw_bps in zip(bars, valores_bps):
-            plt.text(
-                bar.get_x() + bar.get_width()/2,
-                bar.get_height(),
-                f"{format_value(raw_bps, fator):.2f}",
-                ha='center', va='bottom'
-            )
+        plt.ylim(bottom=0, top=top)
+
+        # Rótulos acima das barras + erro (na mesma unidade do eixo)
+        for bar, raw_bps, e in zip(bars, valores_bps, erros_norm):
+            y = bar.get_height() + _safe(e) + label_offset
+            plt.text(bar.get_x() + bar.get_width()/2, y, f"{format_value(raw_bps, fator):.2f}",
+                     ha='center', va='bottom')
 
         plt.ylabel(f"Vazão Média ({unidade})")
         plt.xlabel("Origem")
         plt.title(f"Vazão - {format_label(rodada)} - {format_label(test_name)}")
         plt.xticks(x, labels)
-        plt.ylim(bottom=0)
         png_path = os.path.join(rodada_path, f"{rodada}-{test_name}-vazao_barra.png")
         svg_path = os.path.join(rodada_path, f"{rodada}-{test_name}-vazao_barra.svg")
         plt.tight_layout()
@@ -223,33 +248,37 @@ def plot_vazao_barra_for_test(test_dir, test_name):
         err_cliente_bps  = float(1.96 * np.std(cliente_means_bps,  ddof=1) / np.sqrt(len(cliente_means_bps)))  if len(cliente_means_bps)  > 1 else 0.0
         err_servidor_bps = float(1.96 * np.std(servidor_means_bps, ddof=1) / np.sqrt(len(servidor_means_bps))) if len(servidor_means_bps) > 1 else 0.0
 
-        # Converte em bps para escolher a escala do gráfico agregado
+        # Escala do gráfico agregado
         valores_bps = [media_cliente_bps, media_servidor_bps]
         erros_bps   = [err_cliente_bps, err_servidor_bps]
 
         max_bps = max(valores_bps) if valores_bps else 0.0
-        unidade, fator = choose_bps_scale(max_bps)
+        unidade, fator = choose_bps_scale(max_bps if max_bps > 0 else 1.0)
 
         valores_norm = [v / fator for v in valores_bps]
         erros_norm   = [e / fator for e in erros_bps]
+
+        # Topo dinâmico e folga para rótulos (agregado)
+        y_max = max((_safe(v) + _safe(e)) for v, e in zip(valores_norm, erros_norm)) if valores_norm else 0.0
+        top = (y_max * 1.08) if y_max > 0 else 1.0
+        label_offset = 0.012 * top
 
         labels = ['Cliente', 'Servidor']
         x = np.arange(len(labels))
         width = 0.3
         plt.figure(figsize=(8,6))
         bars = plt.bar(x, valores_norm, width, yerr=erros_norm, capsize=5)
-        for bar, raw_bps in zip(bars, valores_bps):
-            plt.text(
-                bar.get_x() + bar.get_width()/2,
-                bar.get_height(),
-                f"{format_value(raw_bps, fator):.2f}",
-                ha='center', va='bottom'
-            )
+        plt.ylim(bottom=0, top=top)
+
+        for bar, raw_bps, e in zip(bars, valores_bps, erros_norm):
+            y = bar.get_height() + _safe(e) + label_offset
+            plt.text(bar.get_x() + bar.get_width()/2, y, f"{format_value(raw_bps, fator):.2f}",
+                     ha='center', va='bottom')
+
         plt.ylabel(f"Vazão Média ({unidade})")
         plt.xlabel("Origem")
         plt.title(f"{format_label(test_name)} - Vazão (Média das Rodadas)")
         plt.xticks(x, labels)
-        plt.ylim(bottom=0)
         png_path = os.path.join(test_dir, f"{test_name}-vazao_barra.png")
         svg_path = os.path.join(test_dir, f"{test_name}-vazao_barra.svg")
         plt.tight_layout()
@@ -268,55 +297,63 @@ def plot_perda_barra_for_test(test_dir, test_name):
     rounds = get_round_dirs(test_dir)
     perda_list = []
     count = 0
+
     for rodada in rounds:
         rodada_path = os.path.join(test_dir, rodada)
-        # Tenta pegar a perda do servidor (UDP) ou retransmissões do cliente (TCP)
         server_file = os.path.join(rodada_path, f"{rodada}-{test_name}-iperf3_server.csv")
         client_file = os.path.join(rodada_path, f"{rodada}-{test_name}-iperf3_client.csv")
 
-        m = 0
-        err = 0
+        m = 0.0
+        err = 0.0
 
         # Primeiro tenta UDP no servidor: "porcentagem_pacotes_perdidos"
         if os.path.exists(server_file):
             df_srv = pd.read_csv(server_file)
             if "porcentagem_pacotes_perdidos" in df_srv.columns:
                 n = len(df_srv)
-                m = df_srv["porcentagem_pacotes_perdidos"].mean()
-                err = 1.96 * df_srv["porcentagem_pacotes_perdidos"].std() / np.sqrt(n)
+                m = float(df_srv["porcentagem_pacotes_perdidos"].mean())
+                std = float(df_srv["porcentagem_pacotes_perdidos"].std(ddof=1))
+                err = 1.96 * std / np.sqrt(n) if n > 1 and not np.isnan(std) else 0.0
             # Se não, tenta TCP no cliente: "retransmissoes"
             elif os.path.exists(client_file):
                 df_cli = pd.read_csv(client_file)
                 if "retransmissoes" in df_cli.columns:
                     n = len(df_cli)
-                    m = df_cli["retransmissoes"].mean()
-                    err = 1.96 * df_cli["retransmissoes"].std() / np.sqrt(n)
+                    m = float(df_cli["retransmissoes"].mean())
+                    std = float(df_cli["retransmissoes"].std(ddof=1))
+                    err = 1.96 * std / np.sqrt(n) if n > 1 and not np.isnan(std) else 0.0
                 else:
-                    # Sem dados de perda/retransmissão
-                    m = 0
-                    err = 0
+                    m = 0.0
+                    err = 0.0
         # Se não tem server_file, tenta só no cliente
         elif os.path.exists(client_file):
             df_cli = pd.read_csv(client_file)
-            # Para UDP no cliente, não tem perda (apenas bits por segundo), então pula
-            # Para TCP no cliente, "retransmissoes"
             if "retransmissoes" in df_cli.columns:
                 n = len(df_cli)
-                m = df_cli["retransmissoes"].mean()
-                err = 1.96 * df_cli["retransmissoes"].std() / np.sqrt(n)
+                m = float(df_cli["retransmissoes"].mean())
+                std = float(df_cli["retransmissoes"].std(ddof=1))
+                err = 1.96 * std / np.sqrt(n) if n > 1 and not np.isnan(std) else 0.0
             else:
-                m = 0
-                err = 0
+                m = 0.0
+                err = 0.0
         else:
             print(f"Aviso: Nenhum arquivo iperf3 encontrado para {rodada}.")
             continue
 
         plt.figure(figsize=(6,5))
-        bars = plt.bar(["Perda"], [m], yerr=[err], capsize=5)
-        plt.text(0, m, f"{m:.4f}", ha='center', va='bottom')
+        plt.bar(["Perda"], [m], yerr=[err], capsize=5)
+
+        # Ajusta o topo para que caiba o rótulo
+        y_max = _safe(m) + _safe(err)
+        top = (y_max * 1.08) if y_max > 0 else 1.0
+        label_offset = 0.005 * top
+        plt.ylim(bottom=0, top=top)
+
+        # Rótulo acima da barra + erro
+        plt.text(0, m + _safe(err) + label_offset, f"{m:.4f}", ha='center', va='bottom')
+
         plt.ylabel("Perda (%)" if m < 1e2 else "Retransmissões")
         plt.title(f"Perda - {format_label(rodada)} - {format_label(test_name)}")
-        plt.ylim(bottom=0)
         png_path = os.path.join(rodada_path, f"{rodada}-{test_name}-perda_barra.png")
         svg_path = os.path.join(rodada_path, f"{rodada}-{test_name}-perda_barra.svg")
         plt.tight_layout()
@@ -328,15 +365,24 @@ def plot_perda_barra_for_test(test_dir, test_name):
         count += 1
 
     if count > 0:
-        perda_means = [val for val, err in perda_list]
-        media_perda = np.mean(perda_means)
-        err_perda = 1.96 * np.std(perda_means, ddof=1) / np.sqrt(len(perda_means))
+        perda_means = [val for val, _ in perda_list]
+        media_perda = float(np.mean(perda_means))
+        err_perda = float(1.96 * np.std(perda_means, ddof=1) / np.sqrt(len(perda_means))) if len(perda_means) > 1 else 0.0
+
         plt.figure(figsize=(6,5))
-        bars = plt.bar(["Perda"], [media_perda], yerr=[err_perda], capsize=5)
-        plt.text(0, media_perda, f"{media_perda:.4f}", ha='center', va='bottom')
+        plt.bar(["Perda"], [media_perda], yerr=[err_perda], capsize=5)
+
+        # Ajusta o topo para que caiba o rótulo (agregado)
+        y_max = _safe(media_perda) + _safe(err_perda)
+        top = (y_max * 1.08) if y_max > 0 else 1.0
+        label_offset = 0.005 * top
+        plt.ylim(bottom=0, top=top)
+
+        plt.text(0, media_perda + _safe(err_perda) + label_offset, f"{media_perda:.4f}",
+                 ha='center', va='bottom')
+
         plt.ylabel("Perda (%)" if media_perda < 1e2 else "Retransmissões")
         plt.title(f"{format_label(test_name)} - Perda (Média das Rodadas)")
-        plt.ylim(bottom=0)
         png_path = os.path.join(test_dir, f"{test_name}-perda_barra.png")
         svg_path = os.path.join(test_dir, f"{test_name}-perda_barra.svg")
         plt.tight_layout()
@@ -524,6 +570,7 @@ def plot_cpu_comparativo_por_rodada(test_dir, test_name):
     rounds = get_round_dirs(test_dir)
     data = {}
     errors = {}
+
     for rodada in rounds:
         rodada_path = os.path.join(test_dir, rodada)
         mpstat_file = os.path.join(rodada_path, f"{rodada}-{test_name}-mpstat.csv")
@@ -534,13 +581,14 @@ def plot_cpu_comparativo_por_rodada(test_dir, test_name):
         err_dict = {}
         n = len(df)
         for col in df.columns:
-            m = df[col].mean()
-            std = df[col].std()
-            err = 1.96 * std / np.sqrt(n)
+            m = float(pd.to_numeric(df[col], errors='coerce').mean())
+            std = float(pd.to_numeric(df[col], errors='coerce').std(ddof=1))
+            err = 1.96 * std / np.sqrt(n) if n > 1 and not np.isnan(std) else 0.0
             cpu_dict[col] = m
             err_dict[col] = err
         data[rodada] = cpu_dict
         errors[rodada] = err_dict
+
     if not data:
         return
 
@@ -550,22 +598,47 @@ def plot_cpu_comparativo_por_rodada(test_dir, test_name):
     x = np.arange(len(cores_from_header))
     width = 0.8 / len(data)
     plt.figure(figsize=(10,6))
+
+    # acompanhar topo global e guardar barras/erros para rotular depois
+    y_max_total = 0.0
+    all_bars_and_errs = []  # [(bars, err_values)]
+
     for i, rodada in enumerate(sorted(data.keys())):
         round_number = re.search(r'rodada_(\d+)', rodada).group(1)
         cpu_dict = data[rodada]
         err_dict = errors[rodada]
         values = [cpu_dict[core] for core in cores_from_header]
         err_values = [err_dict[core] for core in cores_from_header]
+
+        # atualiza topo global com (valor + erro)
+        if values:
+            y_max_local = max(v + (0.0 if (e is None or np.isnan(e)) else float(e))
+                              for v, e in zip(values, err_values))
+            y_max_total = max(y_max_total, y_max_local)
+
         bars = plt.bar(x + i*width, values, width, yerr=err_values, capsize=5, label=f"Rodada {round_number}")
-        for bar in bars:
-            plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
+        all_bars_and_errs.append((bars, err_values))
+
+    # Ajusta o topo para que caiba o rótulo
+    top = (y_max_total * 1.08) if y_max_total > 0 else 1.0   # 8% de folga no topo
+    label_offset = 0.005 * top                               # distância do valor até o topo da barra
+    plt.ylim(bottom=0, top=top)
+
+    # Rótulos acima das barras
+    for bars, err_values in all_bars_and_errs:
+        for i, bar in enumerate(bars):
+            e = err_values[i] if i < len(err_values) else 0.0
+            e = 0.0 if (e is None or (isinstance(e, float) and np.isnan(e))) else float(e)
+            y = bar.get_height() + e + label_offset
+            plt.text(bar.get_x()+bar.get_width()/2, y, f"{bar.get_height():.2f}",
                      ha='center', va='bottom')
+
     plt.ylabel("Uso médio de CPU (%)")
     plt.xlabel("Núcleo")
     plt.title(f"{format_label(test_name)} - Comparativo do uso de CPU por rodada")
     plt.xticks(x + width*(len(data)-1)/2, [format_label(c) for c in cores])
     plt.legend()
-    plt.ylim(bottom=0)
+
     png_path = os.path.join(test_dir, f"{test_name}-uso_de_cpu_barra_por_rodada.png")
     svg_path = os.path.join(test_dir, f"{test_name}-uso_de_cpu_barra_por_rodada.svg")
     plt.tight_layout()
@@ -585,24 +658,49 @@ def plot_cpu_comparativo_por_teste(resultados_dir, tests, cpu_aggregate):
     width = 0.8 / n_cores
 
     plt.figure(figsize=(10,6))
+
+    # acompanhar o maior (valor + erro) global e guardar barras para rotular depois
+    y_max_total = 0.0
+    all_bars_and_errs = []  # [(bars, err_values)]
+
     for j, core in enumerate(cores):
         values = []
         err_values = []
         for test in test_keys:
             mean_err = cpu_aggregate[test].get(core, (0,0))
-            values.append(mean_err[0])
-            err_values.append(mean_err[1])
+            v = float(mean_err[0]) if mean_err and mean_err[0] is not None else 0.0
+            e = float(mean_err[1]) if mean_err and mean_err[1] is not None else 0.0
+            values.append(v)
+            err_values.append(e)
+
         offset = (j - (n_cores - 1)/2) * width
         bars = plt.bar(x + offset, values, width, yerr=err_values, capsize=5, label=format_label(core))
+        all_bars_and_errs.append((bars, err_values))
+
+        if values:
+            y_max_local = max(v + (e if not np.isnan(e) else 0.0) for v, e in zip(values, err_values))
+            y_max_total = max(y_max_total, y_max_local)
+
+    # topo dinâmico e folga pequena para os rótulos
+    top = (y_max_total * 1.08) if y_max_total > 0 else 1.0   # 8% de folga no topo
+    label_offset = 0.005 * top                               # distância do valor até o topo da barra
+    plt.ylim(bottom=0, top=top)
+
+    # Rótulos acima das barras
+    for bars, err_values in all_bars_and_errs:
         for i, bar in enumerate(bars):
-            plt.text(bar.get_x() + bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
+            e = err_values[i] if i < len(err_values) and err_values[i] is not None else 0.0
+            e = 0.0 if np.isnan(e) else float(e)
+            y = bar.get_height() + e + label_offset
+            plt.text(bar.get_x() + bar.get_width()/2, y, f"{bar.get_height():.2f}",
                      ha='center', va='bottom')
+
     plt.ylabel("Uso médio de CPU (%)")
     plt.xlabel("Teste")
     plt.title("Uso de CPU por teste")
     plt.xticks(x, [format_label(test) for test in test_keys])
     plt.legend(title="Núcleo")
-    plt.ylim(bottom=0)
+
     png_path = os.path.join(resultados_dir, f"{prefix}-uso_de_cpu_por_teste_barra_comparativo.png")
     svg_path = os.path.join(resultados_dir, f"{prefix}-uso_de_cpu_por_teste_barra_comparativo.svg")
     plt.tight_layout()
@@ -622,22 +720,40 @@ def plot_cpu_comparativo_por_nucleo(resultados_dir, tests, cpu_aggregate):
     x = np.arange(len(cores_from_header))
     width = 0.8 / len(tests)
     plt.figure(figsize=(10,6))
+
+    y_max_total = 0.0
+    all_bars_and_errs = []
+
     for i, test in enumerate(sorted(tests)):
         if test not in cpu_aggregate:
             continue
         cpu_dict = cpu_aggregate[test]
         values = [cpu_dict.get(core, (0,0))[0] for core in cores_from_header]
         err_values = [cpu_dict.get(core, (0,0))[1] for core in cores_from_header]
+
+        y_max_local = max((v + e) for v, e in zip(values, err_values)) if values else 0.0
+        y_max_total = max(y_max_total, y_max_local)
+
         bars = plt.bar(x + i*width, values, width, yerr=err_values, capsize=5, label=format_label(test))
-        for bar in bars:
-            plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
+        all_bars_and_errs.append((bars, err_values))
+
+    top = (y_max_total * 1.08) if y_max_total > 0 else 1.0
+    label_offset = 0.005 * top   # distância do valor até o topo da barra
+
+    for bars, err_values in all_bars_and_errs:
+        for i, bar in enumerate(bars):
+            e = err_values[i] if i < len(err_values) else 0.0
+            y = bar.get_height() + e + label_offset
+            plt.text(bar.get_x()+bar.get_width()/2, y, f"{bar.get_height():.2f}",
                      ha='center', va='bottom')
+
     plt.ylabel("Uso médio de CPU (%)")
     plt.xlabel("Núcleo")
     plt.title("Uso de CPU de cada teste por Núcleo")
     plt.xticks(x + width*(len(tests)-1)/2, [format_label(core) for core in cores])
     plt.legend()
-    plt.ylim(bottom=0)
+    plt.ylim(bottom=0, top=top)
+
     png_path = os.path.join(resultados_dir, f"{prefix}-uso_de_cpu_por_nucleo_barra_comparativo.png")
     svg_path = os.path.join(resultados_dir, f"{prefix}-uso_de_cpu_por_nucleo_barra_comparativo.svg")
     plt.tight_layout()
@@ -662,9 +778,9 @@ def plot_perda_comparativo_por_rodada(test_dir, test_name):
             if "porcentagem_pacotes_perdidos" in df_srv.columns:
                 n = len(df_srv)
                 m = df_srv["porcentagem_pacotes_perdidos"].mean()
-                err = 1.96 * df_srv["porcentagem_pacotes_perdidos"].std() / np.sqrt(n)
-                data[rodada] = m
-                errors[rodada] = err
+                err = 1.96 * df_srv["porcentagem_pacotes_perdidos"].std(ddof=1) / np.sqrt(n) if n > 1 else 0.0
+                data[rodada] = float(m)
+                errors[rodada] = float(err)
                 labels_map[rodada] = "Perda (%)"
                 continue  # Achou, passa pra próxima rodada
 
@@ -674,9 +790,9 @@ def plot_perda_comparativo_por_rodada(test_dir, test_name):
             if "retransmissoes" in df_cli.columns:
                 n = len(df_cli)
                 m = df_cli["retransmissoes"].mean()
-                err = 1.96 * df_cli["retransmissoes"].std() / np.sqrt(n)
-                data[rodada] = m
-                errors[rodada] = err
+                err = 1.96 * df_cli["retransmissoes"].std(ddof=1) / np.sqrt(n) if n > 1 else 0.0
+                data[rodada] = float(m)
+                errors[rodada] = float(err)
                 labels_map[rodada] = "Retransmissões"
                 continue
 
@@ -700,19 +816,31 @@ def plot_perda_comparativo_por_rodada(test_dir, test_name):
         ylabel = "Perda/Retransmissões"
         title_tipo = "Perda/Retransmissões"
 
+    # Ajusta o topo para que caiba o rótulo
+    y_max = max((_safe(v) + _safe(e)) for v, e in zip(values, err_values)) if values else 0.0
+    top = (y_max * 1.08) if y_max > 0 else 1.0     # 8% de folga no topo
+    label_offset = 0.005 * top                     # distância do valor até o topo da barra
+
     plt.figure(figsize=(8,6))
     bars = plt.bar(x, values, width=0.5, yerr=err_values, capsize=5)
+
+    # Rótulos acima das barras
     for i, bar in enumerate(bars):
-        rodada = rounds_sorted[i]
-        lbl = labels_map[rodada]
-        val = bar.get_height()
-        plt.text(bar.get_x()+bar.get_width()/2, val, f"{val:.4f}\n({lbl})",
-                 ha='center', va='bottom', fontsize=9)
+        e = _safe(err_values[i]) if i < len(err_values) else 0.0
+        y = bar.get_height() + e + label_offset
+        plt.text(
+            bar.get_x() + bar.get_width()/2,
+            y,
+            f"{bar.get_height():.4f}",
+            ha='center', va='bottom', fontsize=9
+        )
+
     plt.ylabel(ylabel)
     plt.xlabel("Rodada")
     plt.title(f"{format_label(test_name)} - {title_tipo} por rodada")
     plt.xticks(x, rounds_sorted_numbers)
-    plt.ylim(bottom=0)
+    plt.ylim(bottom=0, top=top)
+
     png_path = os.path.join(test_dir, f"{test_name}-perda_barra_comparativo.png")
     svg_path = os.path.join(test_dir, f"{test_name}-perda_barra_comparativo.svg")
     plt.tight_layout()
@@ -724,18 +852,31 @@ def plot_perda_comparativo_por_teste(resultados_dir, tests, perda_aggregate):
     prefix = "-".join(sorted(tests))
     tests_sorted = sorted(perda_aggregate.keys())
     x = np.arange(len(tests_sorted))
+
     values = [perda_aggregate[test][0] for test in tests_sorted]
     err_values = [perda_aggregate[test][1] for test in tests_sorted]
+
+    # Ajusta o topo para que caiba o rótulo
+    y_max = max((_safe(v) + _safe(e)) for v, e in zip(values, err_values)) if values else 0.0
+    top = (y_max * 1.08) if y_max > 0 else 1.0   # 8% de folga no topo
+    label_offset = 0.005 * top                   # distância do valor até o topo da barra
+
     plt.figure(figsize=(8,6))
     bars = plt.bar(x, values, width=0.5, yerr=err_values, capsize=5)
-    for bar in bars:
-        plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), f"{bar.get_height():.4f}",
+
+    # Rótulos acima das barras
+    for i, bar in enumerate(bars):
+        e = _safe(err_values[i]) if i < len(err_values) else 0.0
+        y = bar.get_height() + e + label_offset
+        plt.text(bar.get_x()+bar.get_width()/2, y, f"{bar.get_height():.4f}",
                  ha='center', va='bottom')
+
     plt.ylabel("Perda (%)")
     plt.xlabel("Teste")
     plt.title("Perda Comparativo por Teste")
     plt.xticks(x, [format_label(test) for test in tests_sorted])
-    plt.ylim(bottom=0)
+    plt.ylim(bottom=0, top=top)
+
     png_path = os.path.join(resultados_dir, f"{prefix}-perda_barra_comparativo.png")
     svg_path = os.path.join(resultados_dir, f"{prefix}-perda_barra_comparativo.svg")
     plt.tight_layout()
@@ -764,7 +905,7 @@ def plot_vazao_comparativo_por_rodada(test_dir, test_name):
         if 'bits_por_segundo' in df_client.columns and len(df_client) > 0:
             n_client  = len(df_client)
             m_client  = df_client['bits_por_segundo'].mean()  # bps
-            e_client  = 1.96 * df_client['bits_por_segundo'].std(ddof=1) / np.sqrt(n_client)  # bps
+            e_client  = 1.96 * df_client['bits_por_segundo'].std(ddof=1) / np.sqrt(n_client) if n_client > 1 else 0.0
             data_client[rodada] = float(m_client)
             err_client[rodada]  = float(e_client)
 
@@ -772,7 +913,7 @@ def plot_vazao_comparativo_por_rodada(test_dir, test_name):
         if 'bits_por_segundo' in df_server.columns and len(df_server) > 0:
             n_server  = len(df_server)
             m_server  = df_server['bits_por_segundo'].mean()  # bps
-            e_server  = 1.96 * df_server['bits_por_segundo'].std(ddof=1) / np.sqrt(n_server)  # bps
+            e_server  = 1.96 * df_server['bits_por_segundo'].std(ddof=1) / np.sqrt(n_server) if n_server > 1 else 0.0
             data_server[rodada] = float(m_server)
             err_server[rodada]  = float(e_server)
 
@@ -798,42 +939,41 @@ def plot_vazao_comparativo_por_rodada(test_dir, test_name):
     client_err_values = [e / fator for e in client_err_values_bps]
     server_err_values = [e / fator for e in server_err_values_bps]
 
-    # Eixo X (rodada N)
+    # Eixo X
     x = np.arange(len(rounds_sorted))
     rounds_sorted_numbers = [re.search(r'rodada_(\d+)', r).group(1) for r in rounds_sorted]
 
     width = 0.35
     plt.figure(figsize=(8, 6))
-    bars1 = plt.bar(x - width/2, client_values, width, yerr=client_err_values,
-                    capsize=5, label="Cliente")
-    bars2 = plt.bar(x + width/2, server_values, width, yerr=server_err_values,
-                    capsize=5, label="Servidor")
+    bars1 = plt.bar(x - width/2, client_values, width, yerr=client_err_values, capsize=5, label="Cliente")
+    bars2 = plt.bar(x + width/2, server_values, width, yerr=server_err_values, capsize=5, label="Servidor")
+
+    # Ajuste do topo para caber os rótulos
+    y_max_cli = max((_safe(v) + _safe(e)) for v, e in zip(client_values, client_err_values)) if client_values else 0.0
+    y_max_srv = max((_safe(v) + _safe(e)) for v, e in zip(server_values, server_err_values)) if server_values else 0.0
+    y_max_total = max(y_max_cli, y_max_srv)
+    top = (y_max_total * 1.08) if y_max_total > 0 else 1.0   # 8% de folga
+    label_offset = 0.005 * top                               # distância do valor até o topo da barra
+    plt.ylim(bottom=0, top=top)
 
     # Rótulos acima das barras
-    for bar, raw_bps in zip(bars1, client_values_bps):
-        plt.text(
-            bar.get_x() + bar.get_width()/2,
-            bar.get_height(),
-            f"{format_value(raw_bps, fator):.2f}",
-            ha='center', va='bottom'
-        )
-    for bar, raw_bps in zip(bars2, server_values_bps):
-        plt.text(
-            bar.get_x() + bar.get_width()/2,
-            bar.get_height(),
-            f"{format_value(raw_bps, fator):.2f}",
-            ha='center', va='bottom'
-        )
+    for bar, raw_bps, err in zip(bars1, client_values_bps, client_err_values):
+        y = bar.get_height() + _safe(err) + label_offset
+        plt.text(bar.get_x() + bar.get_width()/2, y,
+                 f"{format_value(raw_bps, fator):.2f}",
+                 ha='center', va='bottom')
+
+    for bar, raw_bps, err in zip(bars2, server_values_bps, server_err_values):
+        y = bar.get_height() + _safe(err) + label_offset
+        plt.text(bar.get_x() + bar.get_width()/2, y,
+                 f"{format_value(raw_bps, fator):.2f}",
+                 ha='center', va='bottom')
 
     # Eixos e título
     plt.ylabel(f"Vazão Média ({unidade})")
     plt.xlabel("Rodada")
     plt.title(f"{format_label(test_name)} - Vazão média por rodada")
     plt.xticks(x, rounds_sorted_numbers)
-
-    # Ajuste do topo para não colidir com os rótulos
-    max_height = max(max(client_values), max(server_values))
-    plt.ylim(bottom=0, top=(max_height * 1.1) if max_height > 0 else 1.0)
 
     plt.legend()
     plt.tight_layout()
@@ -856,9 +996,9 @@ def plot_vazao_comparativo_por_teste(resultados_dir, tests, vazao_aggregate):
     server_err_bps    = [vazao_aggregate[test][1][1] for test in tests_sorted]
 
     # Escala ótima com base no maior bps entre cliente/servidor
-    max_bps = max(max(client_values_bps) if client_values_bps else 0,
-                  max(server_values_bps) if server_values_bps else 0)
-    unidade, fator = choose_bps_scale(max_bps)
+    max_bps = max(max(client_values_bps) if client_values_bps else 0.0,
+                  max(server_values_bps) if server_values_bps else 0.0)
+    unidade, fator = choose_bps_scale(max_bps if max_bps > 0 else 1.0)
 
     # Normaliza para a escala encontrada
     client_values = [v / fator for v in client_values_bps]
@@ -871,16 +1011,27 @@ def plot_vazao_comparativo_por_teste(resultados_dir, tests, vazao_aggregate):
     bars1 = plt.bar(x - width/2, client_values, width, yerr=client_err, capsize=5, label="Cliente")
     bars2 = plt.bar(x + width/2, server_values, width, yerr=server_err, capsize=5, label="Servidor")
 
-    # Rótulos acima das barras (usando a mesma unidade do eixo)
-    for bar, raw_bps in zip(bars1, client_values_bps):
-        vazao_cli = f"{format_value(raw_bps, fator):.2f}"
-        plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(),
-                 vazao_cli,
+    # Ajuste do topo para caber os rótulos
+    y_max_client = max((_safe(v) + _safe(e) for v, e in zip(client_values, client_err)), default=0.0)
+    y_max_server = max((_safe(v) + _safe(e) for v, e in zip(server_values, server_err)), default=0.0)
+    y_max_total  = max(y_max_client, y_max_server)
+    top = (y_max_total * 1.08) if y_max_total > 0 else 1.0   # 8% de folga no topo
+    label_offset = 0.005 * top                               # distância do valor até o topo da barra
+    plt.ylim(bottom=0, top=top)
+
+    # Rótulos acima das barras (na mesma unidade do eixo)
+    for bar, raw_bps, err in zip(bars1, client_values_bps, client_err):
+        e = _safe(err)
+        y = bar.get_height() + e + label_offset
+        plt.text(bar.get_x()+bar.get_width()/2, y,
+                 f"{format_value(raw_bps, fator):.2f}",
                  ha='center', va='bottom')
-    for bar, raw_bps in zip(bars2, server_values_bps):
-        vazao_srv = f"{format_value(raw_bps, fator):.2f}"
-        plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(),
-                 vazao_srv,
+
+    for bar, raw_bps, err in zip(bars2, server_values_bps, server_err):
+        e = _safe(err)
+        y = bar.get_height() + e + label_offset
+        plt.text(bar.get_x()+bar.get_width()/2, y,
+                 f"{format_value(raw_bps, fator):.2f}",
                  ha='center', va='bottom')
 
     plt.ylabel(f"Vazão Média ({unidade})")
@@ -888,7 +1039,6 @@ def plot_vazao_comparativo_por_teste(resultados_dir, tests, vazao_aggregate):
     plt.title("Vazão média por teste")
     plt.xticks(x, [format_label(test) for test in tests_sorted])
     plt.legend()
-    plt.ylim(bottom=0)
 
     png_path = os.path.join(resultados_dir, f"{prefix}-vazao_barra_comparativo_por_teste.png")
     svg_path = os.path.join(resultados_dir, f"{prefix}-vazao_barra_comparativo_por_teste.svg")
@@ -912,23 +1062,29 @@ def plot_vazao_servidor_comparativo(resultados_dir, tests, vazao_aggregate):
 
     # Encontra a maior escala a partir do maior valor em bps
     max_bps = max(server_values_bps) if server_values_bps else 0.0
-    unidade, fator = choose_bps_scale(max_bps)
+    unidade, fator = choose_bps_scale(max_bps if max_bps > 0 else 1.0)
 
     # Normaliza pela escala encontrada
     server_values = [v / fator for v in server_values_bps]
     server_err    = [e / fator for e in server_err_bps]
+
+    # Ajusta o topo para que caiba o rótulo
+    y_max = max((_safe(v) + _safe(e)) for v, e in zip(server_values, server_err)) if server_values else 0.0
+    top = (y_max * 1.08) if y_max > 0 else 1.0       # 8% de folga no topo
+    label_offset = 0.005 * top                       # distância do valor até o topo da barra
 
     width = 0.5
     plt.figure(figsize=(8,6))
     bars = plt.bar(x, server_values, width, yerr=server_err, capsize=5, label="Servidor")
 
     # Rótulos acima das barras
-    for bar, raw_bps in zip(bars, server_values_bps):
-        vazao_srv = f"{format_value(raw_bps, fator):.2f}"
+    for i, (bar, raw_bps) in enumerate(zip(bars, server_values_bps)):
+        e = _safe(server_err[i]) if i < len(server_err) else 0.0
+        y = bar.get_height() + e + label_offset
         plt.text(
             bar.get_x() + bar.get_width()/2,
-            bar.get_height(),
-            vazao_srv,
+            y,
+            f"{format_value(raw_bps, fator):.2f}",
             ha='center', va='bottom'
         )
 
@@ -936,7 +1092,9 @@ def plot_vazao_servidor_comparativo(resultados_dir, tests, vazao_aggregate):
     plt.xlabel("Teste")
     plt.title("Vazão do servidor por teste")
     plt.xticks(x, [format_label(test) for test in tests_sorted])
-    plt.ylim(bottom=0)
+    plt.ylim(bottom=0, top=top)
+    plt.legend()
+
     prefix = "-".join(tests_sorted)
     png_path = os.path.join(resultados_dir, f"{prefix}-vazao_servidor_comparativo.png")
     svg_path = os.path.join(resultados_dir, f"{prefix}-vazao_servidor_comparativo.svg")
