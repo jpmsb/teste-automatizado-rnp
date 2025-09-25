@@ -1239,7 +1239,7 @@ def plot_vazao_com_referencia(resultados_dir, tests, vazao_aggregate, ref_srv, r
 # FUNÇÃO DE SUMARIZAÇÃO, GERAÇÃO DO MARKDOWN E MAIN #
 #####################################################
 def print_summarization(test_name, cpu_usage, vazao_cli_srv_formatada, unidade, perda, round_count):
-    print(f"\nResumo para {format_label(test_name)}:")
+    print(f"\nResumo para {test_name}:")
     print("\nUso de CPU por núcleo:")
     for core, usage in cpu_usage.items():
         print(f"    {format_label(core)}: {usage[0]:.2f}%")
@@ -1447,8 +1447,9 @@ def main():
         if not os.path.isdir(test_dir):
             print(f"Aviso: Diretório do teste {test_dir} não encontrado.")
             continue
-        
-        print(f"\nProcessando {format_label(test)} ...")
+
+        test_display_name = get_test_display_name_from_conf(test_dir, test)
+        print(f"\nProcessando {test_display_name} ...")
         overall_cpu_values, round_count = plot_cpu_usage_for_round(test_dir, test)
         cpu_overall = plot_cpu_usage_for_test(overall_cpu_values, test_dir, test)
         vazao_cli, vazao_srv, vazao_cli_srv_formatada, unidade = plot_vazao_barra_for_test(test_dir, test)
@@ -1462,7 +1463,7 @@ def main():
         plot_perda_comparativo_por_rodada(test_dir, test)
         plot_vazao_comparativo_por_rodada(test_dir, test)
 
-        print_summarization(test, cpu_overall, vazao_cli_srv_formatada, unidade, perda_overall, round_count)
+        print_summarization(test_display_name, cpu_overall, vazao_cli_srv_formatada, unidade, perda_overall, round_count)
 
         cpu_aggregate[test] = cpu_overall
         perda_aggregate[test] = perda_overall
