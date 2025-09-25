@@ -1330,7 +1330,7 @@ def _cpu_idx(k):
     m = re.search(r'(\d+)', k or "")
     return int(m.group(1)) if m else 10**9
 
-def write_markdown_summary(sumarizado_dir, tests, cpu_aggregate, vazao_aggregate, perda_aggregate, resultados_dir=None):
+def write_markdown_summary(resultados_dir, tests, cpu_aggregate, vazao_aggregate, perda_aggregate):
     # Determina a maior unidade de vazão entre todos os testes
     all_bps = []
     for t in tests:
@@ -1397,6 +1397,7 @@ def write_markdown_summary(sumarizado_dir, tests, cpu_aggregate, vazao_aggregate
         lines.append("| " + " | ".join([nome, cli_val, srv_val, perda_val] + cpu_vals) + " |")
 
     # Gerando o arquvivo Markdown
+    sumarizado_dir = os.path.join(resultados_dir, "sumarizado-" + "-".join(tests))
     prefix = "sumarizado-" + "-".join(tests)
     md_path = os.path.join(sumarizado_dir, f"{prefix}.md")
     with open(md_path, "w", encoding="utf-8") as f:
@@ -1541,7 +1542,7 @@ def main():
             vazao_ref = plot_vazao_barra_for_test(ref_dir, ref_test)
             plot_vazao_com_referencia(sumarizado_dir, tests, vazao_aggregate, vazao_ref[1], ref_test)
 
-    write_markdown_summary(sumarizado_dir, tests, cpu_aggregate, vazao_aggregate, perda_aggregate)
+    write_markdown_summary(resultados_dir, tests, cpu_aggregate, vazao_aggregate, perda_aggregate)
 
 if __name__ == "__main__":
     main()
