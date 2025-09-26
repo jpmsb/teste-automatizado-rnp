@@ -52,11 +52,12 @@ def format_value(v_bps, fator):
 def _safe(v):
         return 0.0 if v is None or (isinstance(v, float) and np.isnan(v)) else float(v)
 
-def get_test_display_name_from_conf(test_dir: str, test_name: str) -> str:
+def get_test_display_name_from_conf(test_dir: str) -> str:
     """
     Tenta encontrar o nome amigável do teste no arquivo INI de configuração.
     """
     try:
+        test_name = os.path.basename(test_dir)
         ini_path = os.path.join(test_dir, f"{test_name}-conf.ini")
         if os.path.exists(ini_path):
             cfg = configparser.ConfigParser()
@@ -1449,7 +1450,7 @@ def main():
             print(f"Aviso: Diretório do teste {test_dir} não encontrado.")
             continue
 
-        test_display_name = get_test_display_name_from_conf(test_dir, test)
+        test_display_name = get_test_display_name_from_conf(test_dir)
         print(f"\nProcessando {test_display_name} ...")
         overall_cpu_values, round_count = plot_cpu_usage_for_round(test_dir, test)
         cpu_overall = plot_cpu_usage_for_test(overall_cpu_values, test_dir, test)
