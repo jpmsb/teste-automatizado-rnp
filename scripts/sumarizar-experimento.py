@@ -1367,7 +1367,8 @@ def write_markdown_summary(resultados_dir, tests, cpu_aggregate, vazao_aggregate
     lines.append("|" + "|".join([":---:"]*len(header_cols)) + "|")
 
     for t in tests:
-        nome = format_label(t)
+        test_dir = os.path.join(resultados_dir, t)
+        nome = get_test_display_name_from_conf(test_dir)
 
         # Vazão
         if t in vazao_aggregate:
@@ -1415,8 +1416,9 @@ def write_markdown_summary(resultados_dir, tests, cpu_aggregate, vazao_aggregate
 
         f.write("## Por teste\n\n")
         for t in tests:
-            f.write(f"### {format_label(t)}\n\n")
-            f.write(f"Tabela com os dados de cada rodada para o teste \"{format_label(t)}\".\n\n")
+            test_display_name = get_test_display_name_from_conf(os.path.join(resultados_dir, t))
+            f.write(f"### {test_display_name}\n\n")
+            f.write(f"Tabela com os dados de cada rodada para o teste \"{test_display_name}\".\n\n")
             _hdr, round_lines = _compute_round_tables_for_test(
                 resultados_dir, t, cpu_keys_sorted, fator, unidade
             )
