@@ -79,6 +79,7 @@ def get_test_display_name_from_conf(test_dir: str) -> str:
 def plot_cpu_usage_for_round(test_dir, test_name):
     rounds = get_round_dirs(test_dir)
     overall_cpu_values = {}  # acumula os valores de cada núcleo em cada rodada
+    test_display_name = get_test_display_name_from_conf(test_dir)
 
     count = 0
     for rodada in rounds:
@@ -120,7 +121,7 @@ def plot_cpu_usage_for_round(test_dir, test_name):
 
         plt.ylabel("Uso médio de CPU (%)")
         plt.xlabel("Núcleo")
-        plt.title(f"Uso de CPU - {format_label(rodada)} - {format_label(test_name)}")
+        plt.title(f"Uso de CPU - {format_label(rodada)} - {test_display_name}")
         plt.ylim(bottom=0, top=top)
 
         png_path = os.path.join(rodada_path, f"{rodada}-{test_name}-uso_de_cpu_barra.png")
@@ -139,6 +140,8 @@ def plot_cpu_usage_for_round(test_dir, test_name):
 def plot_cpu_usage_for_test(overall_cpu_values, test_dir, test_name):
     overall_cpu = {}
     overall_cpu_err = {}
+    test_display_name = get_test_display_name_from_conf(test_dir)
+
     for core, values in overall_cpu_values.items():
         overall_cpu[core] = np.mean(values)
         overall_cpu_err[core] = 1.96 * np.std(values, ddof=1) / np.sqrt(len(values)) if len(values) > 1 else 0.0
@@ -166,7 +169,7 @@ def plot_cpu_usage_for_test(overall_cpu_values, test_dir, test_name):
 
     plt.ylabel("Uso médio de CPU (%)")
     plt.xlabel("Núcleo")
-    plt.title(f"{format_label(test_name)} - Uso de CPU (Média das Rodadas)")
+    plt.title(f"{test_display_name} - Uso de CPU (Média das Rodadas)")
     plt.ylim(bottom=0, top=top)
 
     png_path = os.path.join(test_dir, f"{test_name}-uso_de_cpu_barra.png")
@@ -184,6 +187,7 @@ def plot_vazao_barra_for_test(test_dir, test_name):
     cliente_list = []
     servidor_list = []
     count = 0
+    test_display_name = get_test_display_name_from_conf(test_dir)
 
     for rodada in rounds:
         rodada_path = os.path.join(test_dir, rodada)
@@ -246,7 +250,7 @@ def plot_vazao_barra_for_test(test_dir, test_name):
 
         plt.ylabel(f"Vazão Média ({unidade})")
         plt.xlabel("Origem")
-        plt.title(f"Vazão - {format_label(rodada)} - {format_label(test_name)}")
+        plt.title(f"Vazão - {format_label(rodada)} - {test_display_name}")
         plt.xticks(x, labels)
         png_path = os.path.join(rodada_path, f"{rodada}-{test_name}-vazao_barra.png")
         svg_path = os.path.join(rodada_path, f"{rodada}-{test_name}-vazao_barra.svg")
@@ -299,7 +303,7 @@ def plot_vazao_barra_for_test(test_dir, test_name):
 
         plt.ylabel(f"Vazão Média ({unidade})")
         plt.xlabel("Origem")
-        plt.title(f"{format_label(test_name)} - Vazão (Média das Rodadas)")
+        plt.title(f"{test_display_name} - Vazão (Média das Rodadas)")
         plt.xticks(x, labels)
         png_path = os.path.join(test_dir, f"{test_name}-vazao_barra.png")
         svg_path = os.path.join(test_dir, f"{test_name}-vazao_barra.svg")
@@ -319,6 +323,7 @@ def plot_perda_barra_for_test(test_dir, test_name):
     rounds = get_round_dirs(test_dir)
     perda_list = []
     count = 0
+    test_display_name = get_test_display_name_from_conf(test_dir)
 
     for rodada in rounds:
         rodada_path = os.path.join(test_dir, rodada)
@@ -375,7 +380,7 @@ def plot_perda_barra_for_test(test_dir, test_name):
         plt.text(0, m + _safe(err) + label_offset, f"{m:.4f}", ha='center', va='bottom')
 
         plt.ylabel("Perda (%)" if m < 1e2 else "Retransmissões")
-        plt.title(f"Perda - {format_label(rodada)} - {format_label(test_name)}")
+        plt.title(f"Perda - {format_label(rodada)} - {test_display_name}")
         png_path = os.path.join(rodada_path, f"{rodada}-{test_name}-perda_barra.png")
         svg_path = os.path.join(rodada_path, f"{rodada}-{test_name}-perda_barra.svg")
         plt.tight_layout()
@@ -404,7 +409,7 @@ def plot_perda_barra_for_test(test_dir, test_name):
                  ha='center', va='bottom')
 
         plt.ylabel("Perda (%)" if media_perda < 1e2 else "Retransmissões")
-        plt.title(f"{format_label(test_name)} - Perda (Média das Rodadas)")
+        plt.title(f"{test_display_name} - Perda (Média das Rodadas)")
         png_path = os.path.join(test_dir, f"{test_name}-perda_barra.png")
         svg_path = os.path.join(test_dir, f"{test_name}-perda_barra.svg")
         plt.tight_layout()
@@ -418,6 +423,8 @@ def plot_perda_barra_for_test(test_dir, test_name):
 def plot_cpu_temporal_for_test(test_dir, test_name):
     rounds = get_round_dirs(test_dir)
     dfs = []
+    test_display_name = get_test_display_name_from_conf(test_dir)
+
     for rodada in rounds:
         rodada_path = os.path.join(test_dir, rodada)
         mpstat_file = os.path.join(rodada_path, f"{rodada}-{test_name}-mpstat.csv")
@@ -434,7 +441,7 @@ def plot_cpu_temporal_for_test(test_dir, test_name):
             plt.plot(df['tempo'], df[col], label=format_label(col))
         plt.ylabel("Uso de CPU (%)")
         plt.xlabel("Tempo (s)")
-        plt.title(f"CPU Temporal - {format_label(rodada)} - {format_label(test_name)}")
+        plt.title(f"CPU Temporal - {format_label(rodada)} - {test_display_name}")
         plt.legend()
         plt.ylim(bottom=0)
         png_path = os.path.join(rodada_path, f"{rodada}-{test_name}-CPU_temporal.png")
@@ -460,7 +467,7 @@ def plot_cpu_temporal_for_test(test_dir, test_name):
             plt.plot(df_med['tempo'], df_med[col], label=format_label(col))
         plt.ylabel("Uso de CPU (%)")
         plt.xlabel("Tempo (s)")
-        plt.title(f"{format_label(test_name)} - CPU Temporal (Média das Rodadas)")
+        plt.title(f"{test_display_name} - CPU Temporal (Média das Rodadas)")
         plt.legend()
         plt.ylim(bottom=0)
         png_path = os.path.join(test_dir, f"{test_name}-CPU_temporal.png")
@@ -474,6 +481,8 @@ def plot_vazao_temporal_for_test(test_dir, test_name):
     rounds = get_round_dirs(test_dir)
     dfs_client = []
     dfs_server = []
+    test_display_name = get_test_display_name_from_conf(test_dir)
+
     for rodada in rounds:
         rodada_path = os.path.join(test_dir, rodada)
         client_file = os.path.join(rodada_path, f"{rodada}-{test_name}-iperf3_client.csv")
@@ -488,7 +497,7 @@ def plot_vazao_temporal_for_test(test_dir, test_name):
         dfs_client.append(df_client)
         dfs_server.append(df_server)
     if not (dfs_client and dfs_server):
-        print(f"Aviso: Não foi possível criar o gráfico temporal para {test_name} por falta de dados.")
+        print(f"Aviso: Não foi possível criar o gráfico temporal para {test_display_name} por falta de dados.")
         return
 
     # Calcula o menor comprimento comum
@@ -528,7 +537,7 @@ def plot_vazao_temporal_for_test(test_dir, test_name):
         return
     plt.ylabel("Vazão (Mbps)")
     plt.xlabel("Tempo (s)")
-    plt.title(f"{format_label(test_name)} - Vazão Temporal")
+    plt.title(f"{test_display_name} - Vazão Temporal")
     plt.legend()
     plt.ylim(bottom=0)
     png_path = os.path.join(test_dir, f"{test_name}-vazao_temporal.png")
@@ -541,6 +550,8 @@ def plot_vazao_temporal_for_test(test_dir, test_name):
 def plot_perda_temporal_for_test(test_dir, test_name):
     rounds = get_round_dirs(test_dir)
     dfs = []
+    test_display_name = get_test_display_name_from_conf(test_dir)
+
     for rodada in rounds:
         rodada_path = os.path.join(test_dir, rodada)
         client_file = os.path.join(rodada_path, f"{rodada}-{test_name}-iperf3_client.csv")
@@ -557,7 +568,7 @@ def plot_perda_temporal_for_test(test_dir, test_name):
         plt.plot(df['tempo'], df[col], label="Perda (%)")
         plt.ylabel("Perda (%)")
         plt.xlabel("Tempo (s)")
-        plt.title(f"Perda Temporal - {format_label(rodada)} - {format_label(test_name)}")
+        plt.title(f"Perda Temporal - {format_label(rodada)} - {test_display_name}")
         plt.legend()
         plt.ylim(bottom=0)
         png_path = os.path.join(rodada_path, f"{rodada}-{test_name}-perda_temporal.png")
@@ -578,7 +589,7 @@ def plot_perda_temporal_for_test(test_dir, test_name):
         plt.plot(df_med['tempo'], df_med[col], label="Perda (%)")
         plt.ylabel("Perda (%)")
         plt.xlabel("Tempo (s)")
-        plt.title(f"{format_label(test_name)} - Perda Temporal (Média das Rodadas)")
+        plt.title(f"{test_display_name} - Perda Temporal (Média das Rodadas)")
         plt.legend()
         plt.ylim(bottom=0)
         png_path = os.path.join(test_dir, f"{test_name}-perda_temporal.png")
@@ -592,6 +603,7 @@ def plot_cpu_comparativo_por_rodada(test_dir, test_name):
     rounds = get_round_dirs(test_dir)
     data = {}
     errors = {}
+    test_display_name = get_test_display_name_from_conf(test_dir)
 
     for rodada in rounds:
         rodada_path = os.path.join(test_dir, rodada)
@@ -657,7 +669,7 @@ def plot_cpu_comparativo_por_rodada(test_dir, test_name):
 
     plt.ylabel("Uso médio de CPU (%)")
     plt.xlabel("Núcleo")
-    plt.title(f"{format_label(test_name)} - Comparativo do uso de CPU por rodada")
+    plt.title(f"{test_display_name} - Comparativo do uso de CPU por rodada")
     plt.xticks(x + width*(len(data)-1)/2, [format_label(c) for c in cores])
     plt.legend()
 
@@ -720,7 +732,7 @@ def plot_cpu_comparativo_por_teste(resultados_dir, tests, cpu_aggregate):
     plt.ylabel("Uso médio de CPU (%)")
     plt.xlabel("Teste")
     plt.title("Uso de CPU por teste")
-    plt.xticks(x, [format_label(test) for test in test_keys])
+    plt.xticks(x, [get_test_display_name_from_conf(os.path.join(os.path.dirname(resultados_dir), test)) for test in test_keys])
     plt.legend(title="Núcleo")
 
     png_path = os.path.join(resultados_dir, f"{prefix}-uso_de_cpu_por_teste_barra_comparativo.png")
@@ -749,6 +761,9 @@ def plot_cpu_comparativo_por_nucleo(resultados_dir, tests, cpu_aggregate):
     for i, test in enumerate(sorted(tests)):
         if test not in cpu_aggregate:
             continue
+
+        test_dir = os.path.join(os.path.dirname(resultados_dir), test)
+        test_display_name = get_test_display_name_from_conf(test_dir)
         cpu_dict = cpu_aggregate[test]
         values = [cpu_dict.get(core, (0,0))[0] for core in cores_from_header]
         err_values = [cpu_dict.get(core, (0,0))[1] for core in cores_from_header]
@@ -756,7 +771,7 @@ def plot_cpu_comparativo_por_nucleo(resultados_dir, tests, cpu_aggregate):
         y_max_local = max((v + e) for v, e in zip(values, err_values)) if values else 0.0
         y_max_total = max(y_max_total, y_max_local)
 
-        bars = plt.bar(x + i*width, values, width, yerr=err_values, capsize=5, label=format_label(test))
+        bars = plt.bar(x + i*width, values, width, yerr=err_values, capsize=5, label=test_display_name)
         all_bars_and_errs.append((bars, err_values))
 
     top = (y_max_total * 1.08) if y_max_total > 0 else 1.0
@@ -788,6 +803,7 @@ def plot_perda_comparativo_por_rodada(test_dir, test_name):
     data = {}
     errors = {}
     labels_map = {}  # rodada -> label
+    test_display_name = get_test_display_name_from_conf(test_dir)
 
     for rodada in rounds:
         rodada_path = os.path.join(test_dir, rodada)
@@ -859,7 +875,7 @@ def plot_perda_comparativo_por_rodada(test_dir, test_name):
 
     plt.ylabel(ylabel)
     plt.xlabel("Rodada")
-    plt.title(f"{format_label(test_name)} - {title_tipo} por rodada")
+    plt.title(f"{test_display_name} - {title_tipo} por rodada")
     plt.xticks(x, rounds_sorted_numbers)
     plt.ylim(bottom=0, top=top)
 
@@ -896,7 +912,7 @@ def plot_perda_comparativo_por_teste(resultados_dir, tests, perda_aggregate):
     plt.ylabel("Perda (%)")
     plt.xlabel("Teste")
     plt.title("Perda Comparativo por Teste")
-    plt.xticks(x, [format_label(test) for test in tests_sorted])
+    plt.xticks(x, [get_test_display_name_from_conf(os.path.join(os.path.dirname(resultados_dir), test)) for test in tests_sorted])
     plt.ylim(bottom=0, top=top)
 
     png_path = os.path.join(resultados_dir, f"{prefix}-perda_barra_comparativo.png")
@@ -912,6 +928,7 @@ def plot_vazao_comparativo_por_rodada(test_dir, test_name):
     data_server = {}
     err_client = {}
     err_server = {}
+    test_display_name = get_test_display_name_from_conf(test_dir)
 
     for rodada in rounds:
         rodada_path = os.path.join(test_dir, rodada)
@@ -994,7 +1011,7 @@ def plot_vazao_comparativo_por_rodada(test_dir, test_name):
     # Eixos e título
     plt.ylabel(f"Vazão Média ({unidade})")
     plt.xlabel("Rodada")
-    plt.title(f"{format_label(test_name)} - Vazão média por rodada")
+    plt.title(f"{test_display_name} - Vazão média por rodada")
     plt.xticks(x, rounds_sorted_numbers)
 
     plt.legend()
@@ -1059,7 +1076,7 @@ def plot_vazao_comparativo_por_teste(resultados_dir, tests, vazao_aggregate):
     plt.ylabel(f"Vazão Média ({unidade})")
     plt.xlabel("Teste")
     plt.title("Vazão média por teste")
-    plt.xticks(x, [format_label(test) for test in tests_sorted])
+    plt.xticks(x, [get_test_display_name_from_conf(os.path.join(os.path.dirname(resultados_dir), test)) for test in tests_sorted])
     plt.legend()
 
     png_path = os.path.join(resultados_dir, f"{prefix}-vazao_barra_comparativo_por_teste.png")
@@ -1113,7 +1130,7 @@ def plot_vazao_servidor_comparativo(resultados_dir, tests, vazao_aggregate):
     plt.ylabel(f"Vazão média do servidor ({unidade})")
     plt.xlabel("Teste")
     plt.title("Vazão do servidor por teste")
-    plt.xticks(x, [format_label(test) for test in tests_sorted])
+    plt.xticks(x, [get_test_display_name_from_conf(os.path.join(os.path.dirname(resultados_dir), test)) for test in tests_sorted])
     plt.ylim(bottom=0, top=top)
     plt.legend()
 
@@ -1176,8 +1193,11 @@ def plot_perda_temporal_comparativo_por_teste(resultados_dir, tests, perda_tempo
     tests_sorted = sorted(perda_temporal_agg.keys())
     plt.figure(figsize=(10,6))
     for test in tests_sorted:
+        # Obtém o diretório pai de resultados_dir
+        test_dir = os.path.join(os.path.dirname(resultados_dir), test)
+        test_display_name = get_test_display_name_from_conf(test_dir)
         tempo, perda = perda_temporal_agg[test]
-        plt.plot(tempo, perda, label=format_label(test))
+        plt.plot(tempo, perda, label=test_display_name)
     plt.ylabel("Perda (%)")
     plt.xlabel("Tempo (s)")
     plt.title("Perda Temporal Comparativo por Teste")
@@ -1223,7 +1243,7 @@ def plot_vazao_com_referencia(resultados_dir, tests, vazao_aggregate, ref_srv, r
     plt.ylabel("Vazão média do servidor (Mbps)")
     plt.xlabel("Teste")
     plt.title("Vazão do servidor - Comparativo com Referência")
-    plt.xticks(x, [format_label(test) for test in tests_ordered])
+    plt.xticks(x, [get_test_display_name_from_conf(os.path.join(resultados_dir, test)) for test in tests_ordered])
     plt.legend()
     plt.ylim(bottom=0)
     plt.tight_layout()
