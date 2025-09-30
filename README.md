@@ -324,7 +324,7 @@ TempoDaRodada=15
 Sumarizador=./sumarizar-experimento.py -d $DIR_RESULTADOS -t $Teste[1] -t $Teste[2] -t $Teste[3]
 
 [Teste]
-Nome=teste_receita_1
+Nome=Teste 1
 Descricao=Teste A
 PreparoAntes=script_preparo_antes_A
 PreparoDepois=script_preparo_depois_A
@@ -332,7 +332,7 @@ ComandoCliente=iperf3 -c cliente -A 3,7 -w 8m -t 10 -P 2
 ComandoServidor=iperf3 -s -A 1
 
 [Teste]
-Nome=teste_receita_2
+Nome=Teste 2
 Descricao=Teste B
 PreparoAntes=script_preparo_antes_B
 PreparoDepois=script_preparo_depois_B
@@ -340,7 +340,7 @@ ComandoCliente=iperf3 -c cliente --skip-rx-copy -A 3,8 -w 8m -t 10
 ComandoServidor=iperf3 -s
 
 [Teste]
-Nome=teste_receita_3
+Nome=Teste 3
 Descricao=Teste C
 PreparoAntes=script_preparo_antes_C
 PreparoDepois=script_preparo_depois_C
@@ -351,14 +351,14 @@ ComandoServidor=iperf3 -s -A 1
 A seguir, é explicado o que cada seção e parâmetro da receita significa:
 
 - Seção `[Receita]`:
-    - [obrigatório] `Nome`: nome da receita;
+    - [obrigatório] `Nome`: nome da receita, podendo conter espaços;
     - [opcional] `Descricao`: descrição da receita;
     - [opcional] `Rodadas`: quantidade de rodadas por teste. Quando não informado, o valor padrão é 2 rodadas;
     - [opcional] `TempoDaRodada`: tempo de execução, em segundos, de cada rodada. Quando não informado, o valor padrão é 10 segundos;
     - [opcional] `Sumarizador`: comando que será executado após a execução de todos os testes. Pode ser o comando exato que será utilizado ou é possível utilizar as variáveis `$DIR_RESULTADOS` e `$Teste[n]`, onde `n` é o número do teste, para referenciar o diretório de resultados e o nome do teste, respectivamente. Por exemplo: `./sumarizar-experimento.py -d $DIR_RESULTADOS -t $Teste[1] -t $Teste[2] -t $Teste[3]`. Os números correspondem à ordem de definição dos testes na receita.
 
 - Seção `[Teste]`:
-    - [obrigatório] `Nome`: nome do teste;
+    - [obrigatório] `Nome`: nome do teste, podendo conter espaços;
     - [opcional] `Descricao`: descrição do teste;
     - [opcional] `PreparoAntes`: comando que será executado antes da execução do teste. Pode ser utilizado para preparar o ambiente, como reiniciar serviços, limpar caches etc;
     - [opcional] `PreparoDepois`: comando que será executado após a execução do teste. Pode ser utilizado para limpar o ambiente, como reiniciar serviços, limpar caches, etc;
@@ -376,7 +376,7 @@ TempoDaRodada=15
 ; Sumarizador=./sumarizar-experimento.py -d $DIR_RESULTADOS -t $Teste[1] -t $Teste[2] -t $Teste[3]
 
 [Teste]
-Nome=teste_receita_1
+Nome=Teste 1
 Descricao=Teste A
 ; PreparoAntes=script_preparo_antes_A
 PreparoDepois=script_preparo_depois_A
