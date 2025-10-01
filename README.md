@@ -94,87 +94,46 @@ Abaixo, é demonstrado como utilizar as rotinas:
 
     ```bash
     .
-    │   ├── resultados
-    │   ├── teste_1
-    │   │   ├── rodada_1
-    │   │   │   ├── rodada_1-teste_1-iperf3_client.csv
-    │   │   │   ├── rodada_1-teste_1-iperf3_server.csv
-    │   │   │   ├── rodada_1-teste_1-mpstat.csv
-    │   │   │   └── rodada_1-teste_1-mpstat.log
-    │   │   ├── rodada_2
-    │   │   │   ├── rodada_2-teste_1-iperf3_client.csv
-    │   │   │   ├── rodada_2-teste_1-iperf3_server.csv
-    │   │   │   ├── rodada_2-teste_1-mpstat.csv
-    │   │   │   └── rodada_2-teste_1-mpstat.log
-    │   │   ├── rodada_3
-    │   │   │   ├── rodada_3-teste_1-iperf3_client.csv
-    │   │   │   ├── rodada_3-teste_1-iperf3_server.csv
-    │   │   │   ├── rodada_3-teste_1-mpstat.csv
-    │   │   │   └── rodada_3-teste_1-mpstat.log
-    │   │   ├── rodada_4
-    │   │   │   ├── rodada_4-teste_1-iperf3_client.csv
-    │   │   │   ├── rodada_4-teste_1-iperf3_server.csv
-    │   │   │   ├── rodada_4-teste_1-mpstat.csv
-    │   │   │   └── rodada_4-teste_1-mpstat.log
-    │   │   ├── rodada_5
-    │   │   │   ├── rodada_5-teste_1-iperf3_client.csv
-    │   │   │   ├── rodada_5-teste_1-iperf3_server.csv
-    │   │   │   ├── rodada_5-teste_1-mpstat.csv
-    │   │   │   └── rodada_5-teste_1-mpstat.log
-    │   │   └── teste_1-experimento.log
-    │   ├── teste_2
-    │   │   ├── rodada_1
-    │   │   │   ├── rodada_1-teste_2-iperf3_client.csv
-    │   │   │   ├── rodada_1-teste_2-iperf3_server.csv
-    │   │   │   ├── rodada_1-teste_2-mpstat.csv
-    │   │   │   └── rodada_1-teste_2-mpstat.log
-    │   │   ├── rodada_2
-    │   │   │   ├── rodada_2-teste_2-iperf3_client.csv
-    │   │   │   ├── rodada_2-teste_2-iperf3_server.csv
-    │   │   │   ├── rodada_2-teste_2-mpstat.csv
-    │   │   │   └── rodada_2-teste_2-mpstat.log
-    │   │   ├── rodada_3
-    │   │   │   ├── rodada_3-teste_2-iperf3_client.csv
-    │   │   │   ├── rodada_3-teste_2-iperf3_server.csv
-    │   │   │   ├── rodada_3-teste_2-mpstat.csv
-    │   │   │   └── rodada_3-teste_2-mpstat.log
-    │   │   ├── rodada_4
-    │   │   │   ├── rodada_4-teste_2-iperf3_client.csv
-    │   │   │   ├── rodada_4-teste_2-iperf3_server.csv
-    │   │   │   ├── rodada_4-teste_2-mpstat.csv
-    │   │   │   └── rodada_4-teste_2-mpstat.log
-    │   │   ├── rodada_5
-    │   │   │   ├── rodada_5-teste_2-iperf3_client.csv
-    │   │   │   ├── rodada_5-teste_2-iperf3_server.csv
-    │   │   │   ├── rodada_5-teste_2-mpstat.csv
-    │   │   │   └── rodada_5-teste_2-mpstat.log
-    │   │   └── teste_2-experimento.log
-    │   └── teste_3
-    │       ├── rodada_1
-    │       │   ├── rodada_1-teste_3-iperf3_client.csv
-    │       │   ├── rodada_1-teste_3-iperf3_server.csv
-    │       │   ├── rodada_1-teste_3-mpstat.csv
-    │       │   └── rodada_1-teste_3-mpstat.log
-    │       ├── rodada_2
-    │       │   ├── rodada_2-teste_3-iperf3_client.csv
-    │       │   ├── rodada_2-teste_3-iperf3_server.csv
-    │       │   ├── rodada_2-teste_3-mpstat.csv
-    │       │   └── rodada_2-teste_3-mpstat.log
-    │       ├── rodada_3
-    │       │   ├── rodada_3-teste_3-iperf3_client.csv
-    │       │   ├── rodada_3-teste_3-iperf3_server.csv
-    │       │   ├── rodada_3-teste_3-mpstat.csv
-    │       │   └── rodada_3-teste_3-mpstat.log
-    │       ├── rodada_4
-    │       │   ├── rodada_4-teste_3-iperf3_client.csv
-    │       │   ├── rodada_4-teste_3-iperf3_server.csv
-    │       │   ├── rodada_4-teste_3-mpstat.csv
-    │       │   └── rodada_4-teste_3-mpstat.log
-    │       ├── rodada_5
-    │       │   ├── rodada_5-teste_3-iperf3_client.csv
-    │       │   ├── rodada_5-teste_3-iperf3_server.csv
-    │       │   ├── rodada_5-teste_3-mpstat.csv
-    │       │   └── rodada_5-teste_3-mpstat.log
+    resultados/
+    ├── teste
+    │   ├── rodada_1
+    │   │   ├── rodada_1-teste-iperf3_client.csv
+    │   │   ├── rodada_1-teste-iperf3_client.json
+    │   │   ├── rodada_1-teste-iperf3_server.csv
+    │   │   ├── rodada_1-teste-iperf3_server.json
+    │   │   ├── rodada_1-teste-mpstat.csv
+    │   │   └── rodada_1-teste-mpstat.log
+    │   ├── rodada_2
+    │   │   ├── rodada_2-teste-iperf3_client.csv
+    │   │   ├── rodada_2-teste-iperf3_client.json
+    │   │   ├── rodada_2-teste-iperf3_server.csv
+    │   │   ├── rodada_2-teste-iperf3_server.json
+    │   │   ├── rodada_2-teste-mpstat.csv
+    │   │   └── rodada_2-teste-mpstat.log
+    │   ├── rodada_3
+    │   │   ├── rodada_3-teste-iperf3_client.csv
+    │   │   ├── rodada_3-teste-iperf3_client.json
+    │   │   ├── rodada_3-teste-iperf3_server.csv
+    │   │   ├── rodada_3-teste-iperf3_server.json
+    │   │   ├── rodada_3-teste-mpstat.csv
+    │   │   └── rodada_3-teste-mpstat.log
+    │   ├── rodada_4
+    │   │   ├── rodada_4-teste-iperf3_client.csv
+    │   │   ├── rodada_4-teste-iperf3_client.json
+    │   │   ├── rodada_4-teste-iperf3_server.csv
+    │   │   ├── rodada_4-teste-iperf3_server.json
+    │   │   ├── rodada_4-teste-mpstat.csv
+    │   │   └── rodada_4-teste-mpstat.log
+    │   ├── rodada_5
+    │   │   ├── rodada_5-teste-iperf3_client.csv
+    │   │   ├── rodada_5-teste-iperf3_client.json
+    │   │   ├── rodada_5-teste-iperf3_server.csv
+    │   │   ├── rodada_5-teste-iperf3_server.json
+    │   │   ├── rodada_5-teste-mpstat.csv
+    │   │   └── rodada_5-teste-mpstat.log
+    │   ├── teste-conf.ini
+    │   └── teste-experimento.log
+
     ```
 
 - `sumarizar-experimento`
@@ -403,4 +362,4 @@ No comando acima, o teste será executado com 5 rodadas e cada rodada terá dura
     2. Parâmetro `Rodadas` da receita;
     3. Valor padrão de 2 rodadas.
 
-Os resultados são armazenados dentro do diretório `resultados/<nome_receita>`, onde `<nome_receita>` é o valor do parâmetro `Nome` da seção `[Receita]`, com espaços substituídos por `_`. Por exemplo, para o caso da receita de exemplo acima, os resultados seriam armazenados em `resultados/Teste_Receita`. 
+Os resultados são armazenados dentro do diretório `resultados/<nome_receita>`, onde `<nome_receita>` é o valor do parâmetro `Nome` da seção `[Receita]`, com espaços substituídos por `_`. Por exemplo, para o caso da receita de exemplo acima, os resultados seriam armazenados em `resultados/Teste_Receita`.
