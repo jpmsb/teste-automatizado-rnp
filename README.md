@@ -136,6 +136,74 @@ Abaixo, é demonstrado como utilizar as rotinas:
 
     ```
 
+    No arquivo `teste-experimento.log`, está registrado o conteúdo que é exibido no terminal durante a execução do teste:
+
+    ```
+    Início: 2025-09-23 00:24:36
+
+    ##################################################
+
+    Os resultados do experimento serão salvos em ↓:
+    /home/bolsistas-monipe/teste-automatizado-rnp/scripts/resultados/teste
+
+    Nome do teste: teste
+    Quantidade de rodadas: 5
+    Duração de cada rodada: 10 segundos
+
+    ##################################################
+
+    Executando a rodada 1 do teste de 10 segundos...
+
+    Servidor iniciado no núcleo 9...
+    Preparando o mpstat...
+    Cliente iniciado no núcleo 3...
+
+    ##################################################
+
+    ##################################################
+
+    Executando a rodada 2 do teste de 10 segundos...
+
+    Servidor iniciado no núcleo 9...
+    Preparando o mpstat...
+    Cliente iniciado no núcleo 3...
+
+    ##################################################
+
+    ##################################################
+
+    Executando a rodada 3 do teste de 10 segundos...
+
+    Servidor iniciado no núcleo 9...
+    Preparando o mpstat...
+    Cliente iniciado no núcleo 3...
+
+    ##################################################
+
+    ##################################################
+
+    Executando a rodada 4 do teste de 10 segundos...
+
+    Servidor iniciado no núcleo 9...
+    Preparando o mpstat...
+    Cliente iniciado no núcleo 3...
+
+    ##################################################
+
+    ##################################################
+
+    Executando a rodada 5 do teste de 10 segundos...
+
+    Servidor iniciado no núcleo 9...
+    Preparando o mpstat...
+    Cliente iniciado no núcleo 3...
+
+    ##################################################
+
+    Fim: 2025-09-23 00:25:03
+    ```
+
+
 - `sumarizar-experimento`
 
     ```bash
