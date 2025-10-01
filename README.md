@@ -402,3 +402,5 @@ No comando acima, o teste será executado com 5 rodadas e cada rodada terá dura
     1. Argumento `-r` da rotina `executa-experimento`;
     2. Parâmetro `Rodadas` da receita;
     3. Valor padrão de 2 rodadas.
+
+Os resultados são armazenados dentro do diretório `resultados/<nome_receita>`, onde `<nome_receita>` é o valor do parâmetro `Nome` da seção `[Receita]`, com espaços substituídos por `_`. Por exemplo, para o caso da receita de exemplo acima, os resultados seriam armazenados em `resultados/Teste_Receita`. 
