@@ -6,7 +6,7 @@ Dessa forma:
 
 - O _script_ [`executa-experimento`](scripts/executa-experimento) realiza a execução dos testes de vazão utilizando o `iperf` e a coleta de métricas de desempenho;
 
-- O _script_ [`sumarizar-experimento`](scripts/sumarizar-experimento.py) realiza o processamento dos dados gerados pelo `iperf` e gera gráficos com os resultados.
+- O _script_ [`sumarizar-experimento`](scripts/sumarizar-experimento.py) realiza o processamento dos dados gerados pelo `iperf` e gera a sumarização dos resultados, que incluem gráficos, tabelas em Markdown e informação no console.
 
 ## Pré-requisitos
 
