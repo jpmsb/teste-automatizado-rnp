@@ -66,7 +66,7 @@ Abaixo, é demonstrado como utilizar as rotinas:
 
     - [obrigatório] `-s`, `--comando-servidor`: comando do `iperf` do servidor;
 
-    - [obrigatório] `-a`, `--apelido`: apelido do teste;
+    - [obrigatório] `-a`, `--apelido`: apelido do teste, podendo conter espaços. Entretanto, o nome do diretório onde os resultados serão salvos terá os espaços substituídos por `_`;
 
     - [opcional] `-t`, `--duracao`: tempo de execução, em segundos, do teste. Quando não informado, o valor padrão é 10 segundos;
 
