@@ -219,10 +219,10 @@ Abaixo, é demonstrado como utilizar as rotinas:
     Exemplo de uso:
 
     ```bash
-    ./sumarizar-experimento.py -d /home/resultados -t "teste_1" -t "teste_2" -t "teste_3"
+    ./sumarizar-experimento.py -d /home/resultados -t "Teste_1" -t "Teste_2" -t "Teste_3"
     ```
 
-    A saída no terminal será algo como:
+    Supondo que os nomes dos testes sejam "Teste 1", "Teste 2" e "Teste 3", a saída no terminal será algo como:
 
     ```bash
     Processando Teste 1 ...
@@ -230,54 +230,76 @@ Abaixo, é demonstrado como utilizar as rotinas:
     Resumo para Teste 1:
 
     Uso de CPU por núcleo:
-        CPU 0: 5.39%
-        CPU 1: 52.44%
-        CPU 2: 65.58%
-        CPU 3: 0.61%
+        CPU 0: 0.14%
+        CPU 1: 4.31%
+        CPU 2: 41.86%
+        CPU 3: 0.00%
+        CPU 4: 38.07%
+        CPU 5: 11.06%
+        CPU 6: 0.36%
+        CPU 7: 0.28%
 
     Vazão:
-    Origem    Vazão (Mbps)   
-    Cliente   9891.86        
-    Servidor  9787.17        
+    Origem    Vazão (Gbps)   
+    Cliente   8.9993         
+    Servidor  8.9656         
 
     Perda (%):
-    Média     0.10           
+    Média     26.7500        
+
+    Número de rodadas computadas: 2
+
 
     Processando Teste 2 ...
 
     Resumo para Teste 2:
 
     Uso de CPU por núcleo:
-        CPU 0: 5.41%
-        CPU 1: 52.29%
-        CPU 2: 64.91%
-        CPU 3: 0.45%
+        CPU 0: 0.14%
+        CPU 1: 0.64%
+        CPU 2: 44.71%
+        CPU 3: 30.68%
+        CPU 4: 35.69%
+        CPU 5: 6.71%
+        CPU 6: 0.35%
+        CPU 7: 9.78%
 
     Vazão:
-    Origem    Vazão (Mbps)   
-    Cliente   9817.41        
-    Servidor  9747.93        
+    Origem    Vazão (Gbps)   
+    Cliente   9.3717         
+    Servidor  9.3349         
 
     Perda (%):
-    Média     0.04           
+    Média     3.9500         
+
+    Número de rodadas computadas: 2
+
 
     Processando Teste 3 ...
 
     Resumo para Teste 3:
 
     Uso de CPU por núcleo:
-        CPU 0: 5.57%
-        CPU 1: 52.09%
-        CPU 2: 65.53%
-        CPU 3: 0.57%
+        CPU 0: 0.07%
+        CPU 1: 0.07%
+        CPU 2: 63.36%
+        CPU 3: 100.00%
+        CPU 4: 0.07%
+        CPU 5: 27.50%
+        CPU 6: 0.21%
+        CPU 7: 0.28%
 
     Vazão:
-    Origem    Vazão (Mbps)   
-    Cliente   9890.62        
-    Servidor  9774.49        
+    Origem    Vazão (Gbps)   
+    Cliente   2.2197         
+    Servidor  2.2116         
 
     Perda (%):
-    Média     0.10
+    Média     0.0000         
+
+    Número de rodadas computadas: 2
+
+    Arquivo Markdown gerado: resultados/sumarizado-Teste_1-Teste_2-Teste_3/sumarizado-Teste_1-Teste_2-Teste_3.md
     ```
 
     São gerados gráficos nos formatos **png** e **svg**. Abaixo estão alguns exemplos:
