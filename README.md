@@ -1,6 +1,8 @@
 # Teste Automatizado
 
-Este repositório contém _scripts_ que realizam um teste de vazão de forma padrão e automatizada, com o processamento de dados para a geração de gráficos.
+Este repositório contém _scripts_ que realizam testes de vazão de forma padrão e automatizada, com o processamento de dados para a geração de gráficos e tabelas. 
+
+O desenvolvimento foi realizado no contexto do projeto que propõe melhorias para a ferramenta [MonIPÊ](https://memoria.rnp.br/pd/monipe.html), que visa o monitoramento de desempenho dos enlaces da Rede Nacional de Pesquisa (RNP).
 
 Dessa forma:
 
