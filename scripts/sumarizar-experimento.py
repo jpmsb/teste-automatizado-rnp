@@ -1456,6 +1456,8 @@ def main():
     parser.add_argument("-r", "--referencia", help="Nome do teste de referência para comparar a vazão do servidor.")
     parser.add_argument("-p", "--padrao", action="store_true",
                         help="Mostra as linhas do desvio padrão nos gráficos de barras.")
+    parser.add_argument("-m", "--media", action="store_true",
+                        help="Traça uma linha horizontal de média sobre cada grupo de barras nos gráficos.")
     args = parser.parse_args()
 
     resultados_dir = args.resultados
@@ -1463,6 +1465,7 @@ def main():
     cpus = args.cpus.split(",") if args.cpus else None
     referencia = args.referencia
     mostrar_padrao = args.padrao
+    mostrar_media = args.media
 
     cpu_aggregate = {}
     perda_aggregate = {}
