@@ -76,7 +76,7 @@ def get_test_display_name_from_conf(test_dir: str) -> str:
 ########################
 # FUNÇÕES DE PLOTAGEM  #
 ########################
-def plot_cpu_usage_for_round(test_dir, test_name):
+def plot_cpu_usage_for_round(test_dir, test_name, mostrar_padrao=False):
     rounds = get_round_dirs(test_dir)
     overall_cpu_values = {}  # acumula os valores de cada núcleo em cada rodada
     test_display_name = get_test_display_name_from_conf(test_dir)
@@ -111,11 +111,11 @@ def plot_cpu_usage_for_round(test_dir, test_name):
         label_offset = 0.005 * top                            # distância do valor até o topo da barra
 
         plt.figure(figsize=(8,6))
-        bars = plt.bar(cores, valores, yerr=err_values, capsize=5)
+        bars = plt.bar(cores, valores, yerr=err_values if mostrar_padrao else 0, capsize=5 if mostrar_padrao else 0)
 
         for i, bar in enumerate(bars):
             e = err_values[i] if i < len(err_values) else 0.0
-            y = bar.get_height() + e + label_offset
+            y = bar.get_height() + (e if mostrar_padrao else 0) + label_offset
             plt.text(bar.get_x() + bar.get_width()/2, y, f"{bar.get_height():.2f}",
                      ha='center', va='bottom')
 
@@ -137,7 +137,7 @@ def plot_cpu_usage_for_round(test_dir, test_name):
 
     return overall_cpu_values, count
 
-def plot_cpu_usage_for_test(overall_cpu_values, test_dir, test_name):
+def plot_cpu_usage_for_test(overall_cpu_values, test_dir, test_name, mostrar_padrao=False):
     overall_cpu = {}
     overall_cpu_err = {}
     test_display_name = get_test_display_name_from_conf(test_dir)
@@ -158,12 +158,12 @@ def plot_cpu_usage_for_test(overall_cpu_values, test_dir, test_name):
     label_offset = 0.005 * top                   # distância do valor até o topo da barra
 
     plt.figure(figsize=(8,6))
-    bars = plt.bar(cores, valores, yerr=err_values, capsize=5)
+    bars = plt.bar(cores, valores, yerr=err_values if mostrar_padrao else None, capsize=5 if mostrar_padrao else 0)
 
     # Rótulos acima das barras
     for i, bar in enumerate(bars):
         e = _safe(err_values[i]) if i < len(err_values) else 0.0
-        y = bar.get_height() + e + label_offset
+        y = bar.get_height() + (e if mostrar_padrao else 0) + label_offset
         plt.text(bar.get_x() + bar.get_width()/2, y, f"{bar.get_height():.2f}",
                  ha='center', va='bottom')
 
@@ -182,7 +182,7 @@ def plot_cpu_usage_for_test(overall_cpu_values, test_dir, test_name):
     overall_cpu_agg = {core: (overall_cpu[core], overall_cpu_err[core]) for core in overall_cpu}
     return overall_cpu_agg
 
-def plot_vazao_barra_for_test(test_dir, test_name):
+def plot_vazao_barra_for_test(test_dir, test_name, mostrar_padrao=False):
     rounds = get_round_dirs(test_dir)
     cliente_list = []
     servidor_list = []
@@ -239,12 +239,12 @@ def plot_vazao_barra_for_test(test_dir, test_name):
         x = np.arange(len(labels))
         width = 0.3
         plt.figure(figsize=(8,6))
-        bars = plt.bar(x, valores_norm, width, yerr=erros_norm, capsize=5)
+        bars = plt.bar(x, valores_norm, width, yerr=erros_norm if mostrar_padrao else None, capsize=5 if mostrar_padrao else 0)
         plt.ylim(bottom=0, top=top)
 
         # Rótulos acima das barras + erro (na mesma unidade do eixo)
         for bar, raw_bps, e in zip(bars, valores_bps, erros_norm):
-            y = bar.get_height() + _safe(e) + label_offset
+            y = bar.get_height() + (_safe(e) if mostrar_padrao else 0) + label_offset
             plt.text(bar.get_x() + bar.get_width()/2, y, f"{format_value(raw_bps, fator):.2f}",
                      ha='center', va='bottom')
 
@@ -293,11 +293,11 @@ def plot_vazao_barra_for_test(test_dir, test_name):
         x = np.arange(len(labels))
         width = 0.3
         plt.figure(figsize=(8,6))
-        bars = plt.bar(x, valores_norm, width, yerr=erros_norm, capsize=5)
+        bars = plt.bar(x, valores_norm, width, yerr=erros_norm if mostrar_padrao else None, capsize=5 if mostrar_padrao else 0)
         plt.ylim(bottom=0, top=top)
 
         for bar, raw_bps, e in zip(bars, valores_bps, erros_norm):
-            y = bar.get_height() + _safe(e) + label_offset
+            y = bar.get_height() + (_safe(e) if mostrar_padrao else 0) + label_offset
             plt.text(bar.get_x() + bar.get_width()/2, y, f"{format_value(raw_bps, fator):.2f}",
                      ha='center', va='bottom')
 
@@ -319,7 +319,7 @@ def plot_vazao_barra_for_test(test_dir, test_name):
     else:
         return ((0, 0), (0, 0), (0, 0))
 
-def plot_perda_barra_for_test(test_dir, test_name):
+def plot_perda_barra_for_test(test_dir, test_name, mostrar_padrao=False):
     rounds = get_round_dirs(test_dir)
     perda_list = []
     count = 0
@@ -368,7 +368,7 @@ def plot_perda_barra_for_test(test_dir, test_name):
             continue
 
         plt.figure(figsize=(6,5))
-        plt.bar(["Perda"], [m], yerr=[err], capsize=5)
+        plt.bar(["Perda"], [m], yerr=[err] if mostrar_padrao else None, capsize=5 if mostrar_padrao else 0)
 
         # Ajusta o topo para que caiba o rótulo
         y_max = _safe(m) + _safe(err)
@@ -377,7 +377,7 @@ def plot_perda_barra_for_test(test_dir, test_name):
         plt.ylim(bottom=0, top=top)
 
         # Rótulo acima da barra + erro
-        plt.text(0, m + _safe(err) + label_offset, f"{m:.4f}", ha='center', va='bottom')
+        plt.text(0, m + (_safe(err) if mostrar_padrao else 0) + label_offset, f"{m:.4f}", ha='center', va='bottom')
 
         plt.ylabel("Perda (%)" if m < 1e2 else "Retransmissões")
         plt.title(f"Perda - {format_label(rodada)} - {test_display_name}")
@@ -397,7 +397,7 @@ def plot_perda_barra_for_test(test_dir, test_name):
         err_perda = float(1.96 * np.std(perda_means, ddof=1) / np.sqrt(len(perda_means))) if len(perda_means) > 1 else 0.0
 
         plt.figure(figsize=(6,5))
-        plt.bar(["Perda"], [media_perda], yerr=[err_perda], capsize=5)
+        plt.bar(["Perda"], [media_perda], yerr=[err_perda] if mostrar_padrao else None, capsize=5 if mostrar_padrao else 0)
 
         # Ajuste para que o topo se ajuste à barra e o valor de amplitude no topo dela
         y_max = _safe(media_perda) + _safe(err_perda)
@@ -405,7 +405,7 @@ def plot_perda_barra_for_test(test_dir, test_name):
         label_offset = 0.005 * top
         plt.ylim(bottom=0, top=top)
 
-        plt.text(0, media_perda + _safe(err_perda) + label_offset, f"{media_perda:.4f}",
+        plt.text(0, media_perda + (_safe(err_perda) if mostrar_padrao else 0) + label_offset, f"{media_perda:.4f}",
                  ha='center', va='bottom')
 
         plt.ylabel("Perda (%)" if media_perda < 1e2 else "Retransmissões")
@@ -599,7 +599,7 @@ def plot_perda_temporal_for_test(test_dir, test_name):
         plt.savefig(svg_path)
         plt.close()
 
-def plot_cpu_comparativo_por_rodada(test_dir, test_name):
+def plot_cpu_comparativo_por_rodada(test_dir, test_name, mostrar_padrao=False):
     rounds = get_round_dirs(test_dir)
     data = {}
     errors = {}
@@ -650,7 +650,7 @@ def plot_cpu_comparativo_por_rodada(test_dir, test_name):
                               for v, e in zip(values, err_values))
             y_max_total = max(y_max_total, y_max_local)
 
-        bars = plt.bar(x + i*width, values, width, yerr=err_values, capsize=5, label=f"Rodada {round_number}")
+        bars = plt.bar(x + i*width, values, width, yerr=err_values if mostrar_padrao else None, capsize=5 if mostrar_padrao else 0, label=f"Rodada {round_number}")
         all_bars_and_errs.append((bars, err_values))
 
     # Ajuste para que o topo se ajuste à barra e o valor de amplitude no topo dela
@@ -663,7 +663,7 @@ def plot_cpu_comparativo_por_rodada(test_dir, test_name):
         for i, bar in enumerate(bars):
             e = err_values[i] if i < len(err_values) else 0.0
             e = 0.0 if (e is None or (isinstance(e, float) and np.isnan(e))) else float(e)
-            y = bar.get_height() + e + label_offset
+            y = bar.get_height() + (e if mostrar_padrao else 0) + label_offset
             plt.text(bar.get_x()+bar.get_width()/2, y, f"{bar.get_height():.2f}",
                      ha='center', va='bottom')
 
@@ -680,7 +680,7 @@ def plot_cpu_comparativo_por_rodada(test_dir, test_name):
     plt.savefig(svg_path)
     plt.close()
 
-def plot_cpu_comparativo_por_teste(resultados_dir, tests, cpu_aggregate):
+def plot_cpu_comparativo_por_teste(resultados_dir, tests, cpu_aggregate, mostrar_padrao=False):
     if not cpu_aggregate:
         return
     prefix = "-".join(sorted(tests))
@@ -708,7 +708,7 @@ def plot_cpu_comparativo_por_teste(resultados_dir, tests, cpu_aggregate):
             err_values.append(e)
 
         offset = (j - (n_cores - 1)/2) * width
-        bars = plt.bar(x + offset, values, width, yerr=err_values, capsize=5, label=format_label(core))
+        bars = plt.bar(x + offset, values, width, yerr=err_values if mostrar_padrao else None, capsize=5 if mostrar_padrao else 0, label=format_label(core))
         all_bars_and_errs.append((bars, err_values))
 
         if values:
@@ -725,7 +725,7 @@ def plot_cpu_comparativo_por_teste(resultados_dir, tests, cpu_aggregate):
         for i, bar in enumerate(bars):
             e = err_values[i] if i < len(err_values) and err_values[i] is not None else 0.0
             e = 0.0 if np.isnan(e) else float(e)
-            y = bar.get_height() + e + label_offset
+            y = bar.get_height() + (e if mostrar_padrao else 0) + label_offset
             plt.text(bar.get_x() + bar.get_width()/2, y, f"{bar.get_height():.2f}",
                      ha='center', va='bottom')
 
@@ -742,7 +742,7 @@ def plot_cpu_comparativo_por_teste(resultados_dir, tests, cpu_aggregate):
     plt.savefig(svg_path)
     plt.close()
 
-def plot_cpu_comparativo_por_nucleo(resultados_dir, tests, cpu_aggregate):
+def plot_cpu_comparativo_por_nucleo(resultados_dir, tests, cpu_aggregate, mostrar_padrao=False):
     if not cpu_aggregate:
         return
     prefix = "-".join(sorted(tests))
@@ -771,7 +771,7 @@ def plot_cpu_comparativo_por_nucleo(resultados_dir, tests, cpu_aggregate):
         y_max_local = max((v + e) for v, e in zip(values, err_values)) if values else 0.0
         y_max_total = max(y_max_total, y_max_local)
 
-        bars = plt.bar(x + i*width, values, width, yerr=err_values, capsize=5, label=test_display_name)
+        bars = plt.bar(x + i*width, values, width, yerr=err_values if mostrar_padrao else None, capsize=5 if mostrar_padrao else 0, label=test_display_name)
         all_bars_and_errs.append((bars, err_values))
 
     top = (y_max_total * 1.08) if y_max_total > 0 else 1.0
@@ -780,7 +780,7 @@ def plot_cpu_comparativo_por_nucleo(resultados_dir, tests, cpu_aggregate):
     for bars, err_values in all_bars_and_errs:
         for i, bar in enumerate(bars):
             e = err_values[i] if i < len(err_values) else 0.0
-            y = bar.get_height() + e + label_offset
+            y = bar.get_height() + (e if mostrar_padrao else 0) + label_offset
             plt.text(bar.get_x()+bar.get_width()/2, y, f"{bar.get_height():.2f}",
                      ha='center', va='bottom')
 
@@ -798,7 +798,7 @@ def plot_cpu_comparativo_por_nucleo(resultados_dir, tests, cpu_aggregate):
     plt.savefig(svg_path)
     plt.close()
 
-def plot_perda_comparativo_por_rodada(test_dir, test_name):
+def plot_perda_comparativo_por_rodada(test_dir, test_name, mostrar_padrao=False):
     rounds = get_round_dirs(test_dir)
     data = {}
     errors = {}
@@ -860,12 +860,12 @@ def plot_perda_comparativo_por_rodada(test_dir, test_name):
     label_offset = 0.005 * top                     # distância do valor até o topo da barra
 
     plt.figure(figsize=(8,6))
-    bars = plt.bar(x, values, width=0.5, yerr=err_values, capsize=5)
+    bars = plt.bar(x, values, width=0.5, yerr=err_values if mostrar_padrao else None, capsize=5 if mostrar_padrao else 0)
 
     # Rótulos acima das barras
     for i, bar in enumerate(bars):
         e = _safe(err_values[i]) if i < len(err_values) else 0.0
-        y = bar.get_height() + e + label_offset
+        y = bar.get_height() + (e if mostrar_padrao else 0) + label_offset
         plt.text(
             bar.get_x() + bar.get_width()/2,
             y,
@@ -886,7 +886,7 @@ def plot_perda_comparativo_por_rodada(test_dir, test_name):
     plt.savefig(svg_path)
     plt.close()
 
-def plot_perda_comparativo_por_teste(resultados_dir, tests, perda_aggregate):
+def plot_perda_comparativo_por_teste(resultados_dir, tests, perda_aggregate, mostrar_padrao=False):
     prefix = "-".join(sorted(tests))
     tests_sorted = sorted(perda_aggregate.keys())
     x = np.arange(len(tests_sorted))
@@ -900,12 +900,12 @@ def plot_perda_comparativo_por_teste(resultados_dir, tests, perda_aggregate):
     label_offset = 0.005 * top                   # distância do valor até o topo da barra
 
     plt.figure(figsize=(8,6))
-    bars = plt.bar(x, values, width=0.5, yerr=err_values, capsize=5)
+    bars = plt.bar(x, values, width=0.5, yerr=err_values if mostrar_padrao else None, capsize=5 if mostrar_padrao else 0)
 
     # Rótulos acima das barras
     for i, bar in enumerate(bars):
         e = _safe(err_values[i]) if i < len(err_values) else 0.0
-        y = bar.get_height() + e + label_offset
+        y = bar.get_height() + (e if mostrar_padrao else 0) + label_offset
         plt.text(bar.get_x()+bar.get_width()/2, y, f"{bar.get_height():.4f}",
                  ha='center', va='bottom')
 
@@ -922,7 +922,7 @@ def plot_perda_comparativo_por_teste(resultados_dir, tests, perda_aggregate):
     plt.savefig(svg_path)
     plt.close()
 
-def plot_vazao_comparativo_por_rodada(test_dir, test_name):
+def plot_vazao_comparativo_por_rodada(test_dir, test_name, mostrar_padrao=False):
     rounds = get_round_dirs(test_dir)
     data_client = {}
     data_server = {}
@@ -984,8 +984,8 @@ def plot_vazao_comparativo_por_rodada(test_dir, test_name):
 
     width = 0.35
     plt.figure(figsize=(8, 6))
-    bars1 = plt.bar(x - width/2, client_values, width, yerr=client_err_values, capsize=5, label="Cliente")
-    bars2 = plt.bar(x + width/2, server_values, width, yerr=server_err_values, capsize=5, label="Servidor")
+    bars1 = plt.bar(x - width/2, client_values, width, yerr=client_err_values if mostrar_padrao else None, capsize=5 if mostrar_padrao else 0, label="Cliente")
+    bars2 = plt.bar(x + width/2, server_values, width, yerr=server_err_values if mostrar_padrao else None, capsize=5 if mostrar_padrao else 0, label="Servidor")
 
     # Ajuste do topo para caber os rótulos
     y_max_cli = max((_safe(v) + _safe(e)) for v, e in zip(client_values, client_err_values)) if client_values else 0.0
@@ -997,13 +997,13 @@ def plot_vazao_comparativo_por_rodada(test_dir, test_name):
 
     # Rótulos acima das barras
     for bar, raw_bps, err in zip(bars1, client_values_bps, client_err_values):
-        y = bar.get_height() + _safe(err) + label_offset
+        y = bar.get_height() + (_safe(err) if mostrar_padrao else 0) + label_offset
         plt.text(bar.get_x() + bar.get_width()/2, y,
                  f"{format_value(raw_bps, fator):.2f}",
                  ha='center', va='bottom')
 
     for bar, raw_bps, err in zip(bars2, server_values_bps, server_err_values):
-        y = bar.get_height() + _safe(err) + label_offset
+        y = bar.get_height() + (_safe(err) if mostrar_padrao else 0) + label_offset
         plt.text(bar.get_x() + bar.get_width()/2, y,
                  f"{format_value(raw_bps, fator):.2f}",
                  ha='center', va='bottom')
@@ -1023,7 +1023,7 @@ def plot_vazao_comparativo_por_rodada(test_dir, test_name):
     plt.savefig(svg_path)
     plt.close()
 
-def plot_vazao_comparativo_por_teste(resultados_dir, tests, vazao_aggregate):
+def plot_vazao_comparativo_por_teste(resultados_dir, tests, vazao_aggregate, mostrar_padrao=False):
     prefix = "-".join(sorted(tests))
     tests_sorted = sorted(vazao_aggregate.keys())
     x = np.arange(len(tests_sorted))
@@ -1047,8 +1047,8 @@ def plot_vazao_comparativo_por_teste(resultados_dir, tests, vazao_aggregate):
 
     width = 0.35
     plt.figure(figsize=(8,6))
-    bars1 = plt.bar(x - width/2, client_values, width, yerr=client_err, capsize=5, label="Cliente")
-    bars2 = plt.bar(x + width/2, server_values, width, yerr=server_err, capsize=5, label="Servidor")
+    bars1 = plt.bar(x - width/2, client_values, width, yerr=client_err if mostrar_padrao else None, capsize=5 if mostrar_padrao else 0, label="Cliente")
+    bars2 = plt.bar(x + width/2, server_values, width, yerr=server_err if mostrar_padrao else None, capsize=5 if mostrar_padrao else 0, label="Servidor")
 
     # Ajuste para que o topo se ajuste à barra e o valor de amplitude no topo dela
     y_max_client = max((_safe(v) + _safe(e) for v, e in zip(client_values, client_err)), default=0.0)
@@ -1061,14 +1061,14 @@ def plot_vazao_comparativo_por_teste(resultados_dir, tests, vazao_aggregate):
     # Rótulos acima das barras (na mesma unidade do eixo)
     for bar, raw_bps, err in zip(bars1, client_values_bps, client_err):
         e = _safe(err)
-        y = bar.get_height() + e + label_offset
+        y = bar.get_height() + (e if mostrar_padrao else 0) + label_offset
         plt.text(bar.get_x()+bar.get_width()/2, y,
                  f"{format_value(raw_bps, fator):.2f}",
                  ha='center', va='bottom')
 
     for bar, raw_bps, err in zip(bars2, server_values_bps, server_err):
         e = _safe(err)
-        y = bar.get_height() + e + label_offset
+        y = bar.get_height() + (e if mostrar_padrao else 0) + label_offset
         plt.text(bar.get_x()+bar.get_width()/2, y,
                  f"{format_value(raw_bps, fator):.2f}",
                  ha='center', va='bottom')
@@ -1086,7 +1086,7 @@ def plot_vazao_comparativo_por_teste(resultados_dir, tests, vazao_aggregate):
     plt.savefig(svg_path)
     plt.close()
 
-def plot_vazao_servidor_comparativo(resultados_dir, tests, vazao_aggregate):
+def plot_vazao_servidor_comparativo(resultados_dir, tests, vazao_aggregate, mostrar_padrao=False):
     # Mantém apenas testes presentes no agregado e na mesma ordem do parâmetro 'tests'
     tests_sorted = [t for t in tests if t in vazao_aggregate]
     if not tests_sorted:
@@ -1114,12 +1114,12 @@ def plot_vazao_servidor_comparativo(resultados_dir, tests, vazao_aggregate):
 
     width = 0.5
     plt.figure(figsize=(8,6))
-    bars = plt.bar(x, server_values, width, yerr=server_err, capsize=5, label="Servidor")
+    bars = plt.bar(x, server_values, width, yerr=server_err if mostrar_padrao else None, capsize=5 if mostrar_padrao else 0, label="Servidor")
 
     # Rótulos acima das barras
     for i, (bar, raw_bps) in enumerate(zip(bars, server_values_bps)):
         e = _safe(server_err[i]) if i < len(server_err) else 0.0
-        y = bar.get_height() + e + label_offset
+        y = bar.get_height() + (e if mostrar_padrao else 0) + label_offset
         plt.text(
             bar.get_x() + bar.get_width()/2,
             y,
@@ -1213,7 +1213,7 @@ def plot_perda_temporal_comparativo_por_teste(resultados_dir, tests, perda_tempo
 ###########################################################
 # GRÁFICO COMPARATIVO DE VAZÃO DO SERVIDOR COM REFERÊNCIA #
 ###########################################################
-def plot_vazao_com_referencia(resultados_dir, tests, vazao_aggregate, ref_srv, ref_test):
+def plot_vazao_com_referencia(resultados_dir, tests, vazao_aggregate, ref_srv, ref_test, mostrar_padrao=False):
     """
     Gera um gráfico de barras comparativo da vazão do servidor de cada teste em relação à
     vazão do servidor do teste de referência.
@@ -1232,8 +1232,8 @@ def plot_vazao_com_referencia(resultados_dir, tests, vazao_aggregate, ref_srv, r
     x = np.arange(n_tests)
     width = 0.35
     plt.figure(figsize=(10,6))
-    bars1 = plt.bar(x - width/2, ref_values, width, yerr=ref_errs, capsize=5, label="Referência")
-    bars2 = plt.bar(x + width/2, test_srv_values, width, yerr=test_srv_errs, capsize=5, label="Teste")
+    bars1 = plt.bar(x - width/2, ref_values, width, yerr=ref_errs if mostrar_padrao else None, capsize=5 if mostrar_padrao else 0, label="Referência")
+    bars2 = plt.bar(x + width/2, test_srv_values, width, yerr=test_srv_errs if mostrar_padrao else None, capsize=5 if mostrar_padrao else 0, label="Teste")
     for bar in bars1:
         plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), format_throughput(bar.get_height()),
                  ha='center', va='bottom')
@@ -1454,12 +1454,15 @@ def main():
                         help="Nome do teste. Pode ser especificado múltiplas vezes.")
     parser.add_argument("-c", "--cpus", help="Lista de CPUs a serem consideradas, separadas por vírgula. Ex: 1,2")
     parser.add_argument("-r", "--referencia", help="Nome do teste de referência para comparar a vazão do servidor.")
+    parser.add_argument("-p", "--padrao", action="store_true",
+                        help="Mostra as linhas do desvio padrão nos gráficos de barras.")
     args = parser.parse_args()
 
     resultados_dir = args.resultados
     tests = args.teste
     cpus = args.cpus.split(",") if args.cpus else None
     referencia = args.referencia
+    mostrar_padrao = args.padrao
 
     cpu_aggregate = {}
     perda_aggregate = {}
@@ -1474,18 +1477,18 @@ def main():
 
         test_display_name = get_test_display_name_from_conf(test_dir)
         print(f"\nProcessando {test_display_name} ...")
-        overall_cpu_values, round_count = plot_cpu_usage_for_round(test_dir, test)
-        cpu_overall = plot_cpu_usage_for_test(overall_cpu_values, test_dir, test)
-        vazao_cli, vazao_srv, vazao_cli_srv_formatada, unidade = plot_vazao_barra_for_test(test_dir, test)
-        perda_overall = plot_perda_barra_for_test(test_dir, test)
+        overall_cpu_values, round_count = plot_cpu_usage_for_round(test_dir, test, mostrar_padrao)
+        cpu_overall = plot_cpu_usage_for_test(overall_cpu_values, test_dir, test, mostrar_padrao)
+        vazao_cli, vazao_srv, vazao_cli_srv_formatada, unidade = plot_vazao_barra_for_test(test_dir, test, mostrar_padrao)
+        perda_overall = plot_perda_barra_for_test(test_dir, test, mostrar_padrao)
         
         plot_cpu_temporal_for_test(test_dir, test)
         plot_vazao_temporal_for_test(test_dir, test)
         plot_perda_temporal_for_test(test_dir, test)
 
-        plot_cpu_comparativo_por_rodada(test_dir, test)
-        plot_perda_comparativo_por_rodada(test_dir, test)
-        plot_vazao_comparativo_por_rodada(test_dir, test)
+        plot_cpu_comparativo_por_rodada(test_dir, test, mostrar_padrao)
+        plot_perda_comparativo_por_rodada(test_dir, test, mostrar_padrao)
+        plot_vazao_comparativo_por_rodada(test_dir, test, mostrar_padrao)
 
         print_summarization(test_display_name, cpu_overall, vazao_cli_srv_formatada, unidade, perda_overall, round_count)
 
@@ -1498,17 +1501,17 @@ def main():
     if not os.path.exists(sumarizado_dir):
         os.makedirs(sumarizado_dir)
 
-    plot_cpu_comparativo_por_teste(sumarizado_dir, tests, cpu_aggregate)
-    plot_cpu_comparativo_por_nucleo(sumarizado_dir, tests, cpu_aggregate)
-    plot_perda_comparativo_por_teste(sumarizado_dir, tests, perda_aggregate)
-    plot_vazao_comparativo_por_teste(sumarizado_dir, tests, vazao_aggregate)
-    plot_vazao_servidor_comparativo(sumarizado_dir, tests, vazao_aggregate)
+    plot_cpu_comparativo_por_teste(sumarizado_dir, tests, cpu_aggregate, mostrar_padrao)
+    plot_cpu_comparativo_por_nucleo(sumarizado_dir, tests, cpu_aggregate, mostrar_padrao)
+    plot_perda_comparativo_por_teste(sumarizado_dir, tests, perda_aggregate, mostrar_padrao)
+    plot_vazao_comparativo_por_teste(sumarizado_dir, tests, vazao_aggregate, mostrar_padrao)
+    plot_vazao_servidor_comparativo(sumarizado_dir, tests, vazao_aggregate, mostrar_padrao)
 
     agg_perda_temp = aggregate_all_perda_temporal(resultados_dir, tests)
     plot_perda_temporal_comparativo_por_teste(sumarizado_dir, tests, agg_perda_temp)
 
     if cpus:
-        def plot_cpu_comparativo_por_teste_cpus(resultados_dir, tests, cpu_aggregate, cpus):
+        def plot_cpu_comparativo_por_teste_cpus(resultados_dir, tests, cpu_aggregate, cpus, mostrar_padrao=False):
             tests_sorted = sorted([test for test in tests if test in cpu_aggregate])
             n_tests = len(tests_sorted)
             n_cpus = len(cpus)
@@ -1533,7 +1536,7 @@ def main():
                     values.append(usage)
                     err_values.append(err)
                 offset = (j - (n_cpus - 1)/2) * width
-                bars = plt.bar(x + offset, values, width, yerr=err_values, capsize=5, label=f"CPU {cpu}")
+                bars = plt.bar(x + offset, values, width, yerr=err_values if mostrar_padrao else None, capsize=5 if mostrar_padrao else 0, label=f"CPU {cpu}")
                 for i, bar in enumerate(bars):
                     plt.text(bar.get_x()+bar.get_width()/2, bar.get_height(), f"{bar.get_height():.2f}",
                              ha='center', va='bottom')
@@ -1553,7 +1556,7 @@ def main():
             filepath_svg = os.path.join(resultados_dir, filename_svg)
             plt.savefig(filepath_svg)
             plt.close()
-        plot_cpu_comparativo_por_teste_cpus(sumarizado_dir, tests, cpu_aggregate, cpus)
+        plot_cpu_comparativo_por_teste_cpus(sumarizado_dir, tests, cpu_aggregate, cpus, mostrar_padrao)
 
     if referencia:
         ref_test = referencia
@@ -1562,8 +1565,8 @@ def main():
             print(f"Aviso: Diretório do teste de referência {ref_dir} não encontrado.")
         else:
             print(f"\nProcessando teste de referência {format_label(ref_test)} ...")
-            vazao_ref = plot_vazao_barra_for_test(ref_dir, ref_test)
-            plot_vazao_com_referencia(sumarizado_dir, tests, vazao_aggregate, vazao_ref[1], ref_test)
+            vazao_ref = plot_vazao_barra_for_test(ref_dir, ref_test, mostrar_padrao)
+            plot_vazao_com_referencia(sumarizado_dir, tests, vazao_aggregate, vazao_ref[1], ref_test, mostrar_padrao)
 
     write_markdown_summary(resultados_dir, tests, cpu_aggregate, vazao_aggregate, perda_aggregate)
 
