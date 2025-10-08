@@ -1086,7 +1086,7 @@ def plot_vazao_comparativo_por_teste(resultados_dir, tests, vazao_aggregate, mos
     plt.savefig(svg_path)
     plt.close()
 
-def plot_vazao_servidor_comparativo(resultados_dir, tests, vazao_aggregate, mostrar_padrao=False):
+def plot_vazao_servidor_comparativo(resultados_dir, tests, vazao_aggregate, mostrar_padrao=False, mostrar_media=False):
     # Mantém apenas testes presentes no agregado e na mesma ordem do parâmetro 'tests'
     tests_sorted = [t for t in tests if t in vazao_aggregate]
     if not tests_sorted:
@@ -1107,6 +1107,9 @@ def plot_vazao_servidor_comparativo(resultados_dir, tests, vazao_aggregate, most
     server_values = [v / fator for v in server_values_bps]
     server_err    = [e / fator for e in server_err_bps]
 
+    # Média das barras
+    media_barras = (np.mean(server_values) if server_values else 0.0)
+
     # Ajusta o topo para que caiba o rótulo
     y_max = max((_safe(v) + _safe(e)) for v, e in zip(server_values, server_err)) if server_values else 0.0
     top = (y_max * 1.08) if y_max > 0 else 1.0       # 8% de folga no topo
@@ -1114,7 +1117,23 @@ def plot_vazao_servidor_comparativo(resultados_dir, tests, vazao_aggregate, most
 
     width = 0.5
     plt.figure(figsize=(8,6))
+    ax = plt.gca()
     bars = plt.bar(x, server_values, width, yerr=server_err if mostrar_padrao else None, capsize=5 if mostrar_padrao else 0, label="Servidor")
+
+    # Linha de média das barras
+    if mostrar_media and len(server_values) > 0:
+        # Extremos horizontais cobrindo todas as barras
+        x_start = (x[0] - width/2) if len(x) > 0 else -0.5
+        x_end   = (x[-1] + width/2) if len(x) > 0 else 0.5
+        ax.hlines(
+            media_barras,
+            x_start,
+            x_end,
+            colors='orange',
+            linestyles='solid',
+            linewidth=5,
+            label="Média"
+        )
 
     # Rótulos acima das barras
     for i, (bar, raw_bps) in enumerate(zip(bars, server_values_bps)):
@@ -1508,7 +1527,7 @@ def main():
     plot_cpu_comparativo_por_nucleo(sumarizado_dir, tests, cpu_aggregate, mostrar_padrao)
     plot_perda_comparativo_por_teste(sumarizado_dir, tests, perda_aggregate, mostrar_padrao)
     plot_vazao_comparativo_por_teste(sumarizado_dir, tests, vazao_aggregate, mostrar_padrao)
-    plot_vazao_servidor_comparativo(sumarizado_dir, tests, vazao_aggregate, mostrar_padrao)
+    plot_vazao_servidor_comparativo(sumarizado_dir, tests, vazao_aggregate, mostrar_padrao, mostrar_media)
 
     agg_perda_temp = aggregate_all_perda_temporal(resultados_dir, tests)
     plot_perda_temporal_comparativo_por_teste(sumarizado_dir, tests, agg_perda_temp)
