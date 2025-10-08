@@ -216,7 +216,15 @@ Abaixo, é demonstrado como utilizar as rotinas:
 
     - [obrigatório] `-d`, `--diretorio`: diretório onde estão os arquivos de resultados dos testes. É neste diretório que os gráficos gerados serão salvos, de acordo com o contexto de cada um. Por exemplo, gráficos que contenham informação sobre uma rodada de um teste, serão salvos em um diretório com o nome da rodada;
 
-    - [obrigatório] `-t`, `--teste`: apelidos dos testes que serão sumarizados. Estes apelidos são os mesmos informados no momento da execução do teste.
+    - [obrigatório] `-t`, `--teste`: apelidos dos testes que serão sumarizados. Estes apelidos são os mesmos informados no momento da execução do teste;
+
+    - [opcional] `-c`, `--cpus`: lista de CPUs a serem consideradas, separadas por vírgula. Ex: 1,2". Quando especificado, um gráfico adicional é gerado contendo somente as CPUs informadas. O nome do arquivo segue o padrão `<nome_do_teste_1>-<nome_do_teste_2>-...-<nome_do_teste_n>-cpu_1_cpu_2_..._cpu_n-comparativo_cpu_por_teste.png`. Caso não seja informado, todas as CPUs serão consideradas;
+
+    - [opcional] `r`, `--referencia`: nome do teste de referência para comparar a vazão do servidor. Quando especificado, um gráfico adicional é gerado, com o padrão de nome de arquivo `<nome_teste_de_referencia>-<nome_do_teste_1>-<nome_do_teste_2>-...-<nome_do_teste_n>-comparativo_vazao_com_referencia`;
+
+    - [opcional] `-i`, `--intervalo-confianca`: mostra as linhas do intervalo de confiança nos gráficos de barras;
+
+    - [opcional] `-m`, `--media`: traça uma linha horizontal, representando a média dos valores nos gráficos de barras;
 
     Exemplo de uso:
 
