@@ -330,11 +330,6 @@ verifica_dependencias(){
     fi
 }
 
-mata_processos(){
-    echo "Limpando processos antigos..."
-    pkill -f iperf3 -9
-}
-
 contagem_regressiva(){
     valor_inicial=$1
     texto="$2"
