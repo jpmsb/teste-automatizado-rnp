@@ -330,13 +330,6 @@ verifica_dependencias(){
     fi
 }
 
-# Executa o script que prepara o cenário
-sobe_cenario(){
-    local script_preparatorio="$1"
-
-    bash $script_preparatorio > /dev/null 2>&1
-}
-
 mata_processos(){
     echo "Limpando processos antigos..."
     pkill -f iperf3 -9
