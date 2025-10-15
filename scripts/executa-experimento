@@ -383,12 +383,16 @@ roda_teste(){
     local nucleo=""
     local texto_banda=""
     local args_extras=""
+    local quantidade_amostras_omitidas=0
 
     local comando_iperf3_cliente=$(echo $comando_cliente | sed 's/.*\(iperf3 .*\)/\1/')
     local comando_iperf3_servidor=$(echo $comando_servidor | sed 's/.*\(iperf3 .*\)/\1/')
 
     local banda=$(echo $comando_iperf3_cliente | awk '{ while (match($0, /-b[ ]*([0-9]+[MG]?)/, a)) { val=a[1]; $0=substr($0, RSTART+RLENGTH) } } END { if(val) print val }')
     local quantidade_fluxos=$(echo $comando_iperf3_cliente | awk '{ while (match($0, /-P[ ]*([0-9]+)/, a)) { val=a[1]; $0=substr($0, RSTART+RLENGTH) } } END { if(val) print val }')
+
+    # Verificando se há medições omitidas no comando do cliente
+    quantidade_amostras_omitidas=$(obtem_quantidade_amostras_omitidas "$comando_iperf3_cliente")
 
     # Verificando se o comando do cliente possui o núcleo do servidor
     nucleo=$(echo $comando_iperf3_cliente | awk 'match($0, /-A[ ]*([0-9]+(,[0-9]+)*)/, a) { val=a[1] } END { if(val) print val }')
@@ -417,13 +421,21 @@ roda_teste(){
         fi
     fi
 
+    if [ "$quantidade_amostras_omitidas" -eq 1 ]; then
+        texto_quantidade_amostras_omitidas=" e com ${quantidade_amostras_omitida} medição omitida"
+    elif [ "$quantidade_amostras_omitidas" -gt 1 ]; then
+        texto_quantidade_amostras_omitidas=" e com ${quantidade_amostras_omitidas} medições omitidas"
+    else
+        texto_quantidade_amostras_omitidas=""
+    fi
+
     if [ -z "$banda" ]; then
         texto_banda=", sem limite de banda"
     else
         texto_banda=", com banda de ${banda}"
     fi
 
-    mostrar_e_registrar "\n${verde}Executando a rodada $rodada_atual do teste de $duracao segundos${texto_banda}...${normal}\n" "$log_teste"
+    mostrar_e_registrar "\n${verde}Executando a rodada $rodada_atual do teste de $duracao segundos${texto_banda}${texto_quantidade_amostras_omitidas}...${normal}\n" "$log_teste"
     mkdir -p $dir_resultados_teste/rodada_$rodada_atual
 
     mostrar_e_registrar "${amarelo}Servidor iniciado${texto_nucleo_servidor}...${normal}" "$log_teste"
@@ -442,9 +454,9 @@ roda_teste(){
 
     sleep 1
     # Processa os resultados para CSV
-    $dir_este_script/iperf-json-to-csv $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.json > $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.csv 2>/dev/null
+    $dir_este_script/iperf-json-to-csv $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.json $quantidade_amostras_omitidas > $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.csv 2>/dev/null
 
-    $dir_este_script/iperf-json-to-csv $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.json > $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.csv 2>/dev/null
+    $dir_este_script/iperf-json-to-csv $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.json $quantidade_amostras_omitidas > $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.csv 2>/dev/null
 
     cat $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-mpstat.log | $dir_este_script/mpstat_to_csv.py > $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-mpstat.csv
 }
