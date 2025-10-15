@@ -1,6 +1,7 @@
 #!/bin/bash
 
 ARQUIVO_JSON="$1"
+LINHAS_PULADAS="$2"
 
 if [ -z "$ARQUIVO_JSON" ]; then
     echo -e "\nUso: $0 <arquivo_json>\n"
@@ -12,27 +13,31 @@ if [ ! -f "$ARQUIVO_JSON" ]; then
     exit 1
 fi
 
+if [ -z "$LINHAS_PULADAS" ]; then
+    LINHAS_PULADAS=0
+fi
+
 PROTOCOLO=$(jq -Rsr 'sub("^[^{]*";"") | fromjson | .start.test_start.protocol' "$ARQUIVO_JSON")
 
 if "$(jq -Rsr 'sub("^[^{]*";"") | fromjson | .start | has("accepted_connection")' $ARQUIVO_JSON)"; then
     # Se for o servidor
     if [ "$PROTOCOLO" = "UDP" ]; then
         echo "host_origem,porta_origem,total_bytes_transferidos,bits_por_segundo,jitter,total_pacotes_perdidos,porcentagem_pacotes_perdidos"
-        jq -Rsr 'sub("^[^{]*";"") | fromjson | .intervals[].sum as $soma | .start.connected[0] as $conexao | "\($conexao.remote_host),\($conexao.remote_port),\($soma.bytes),\($soma.bits_per_second),\($soma.jitter_ms),\($soma.lost_packets),\($soma.lost_percent)"' "$ARQUIVO_JSON"
+        jq -Rsr 'sub("^[^{]*";"") | fromjson | .intervals[].sum as $soma | .start.connected[0] as $conexao | "\($conexao.remote_host),\($conexao.remote_port),\($soma.bytes),\($soma.bits_per_second),\($soma.jitter_ms),\($soma.lost_packets),\($soma.lost_percent)"' "$ARQUIVO_JSON" | tail -n +$((LINHAS_PULADAS + 1))
 
     else
         echo "host_origem,porta_origem,total_bytes_transferidos,bits_por_segundo"
-        jq -Rsr 'sub("^[^{]*";"") | fromjson | .intervals[].sum as $soma | .start.connected[0] as $conexao | "\($conexao.remote_host),\($conexao.remote_port),\($soma.bytes),\($soma.bits_per_second)"' "$ARQUIVO_JSON"
+        jq -Rsr 'sub("^[^{]*";"") | fromjson | .intervals[].sum as $soma | .start.connected[0] as $conexao | "\($conexao.remote_host),\($conexao.remote_port),\($soma.bytes),\($soma.bits_per_second)"' "$ARQUIVO_JSON" | tail -n +$((LINHAS_PULADAS + 1))
     fi
 
 else
     # Se for o cliente
     if [ "$PROTOCOLO" = "UDP" ]; then
         echo "host_destino,porta_destino,protocolo,bytes_transferidos,bits_por_segundo"
-        jq -Rsr 'sub("^[^{]*";"") | fromjson | .intervals[].sum as $soma | .start.connected[0] as $conexao | "\($conexao.remote_host),\($conexao.remote_port),\(.start.test_start.protocol),\($soma.bytes),\($soma.bits_per_second)"' "$ARQUIVO_JSON"
+        jq -Rsr 'sub("^[^{]*";"") | fromjson | .intervals[].sum as $soma | .start.connected[0] as $conexao | "\($conexao.remote_host),\($conexao.remote_port),\(.start.test_start.protocol),\($soma.bytes),\($soma.bits_per_second)"' "$ARQUIVO_JSON" | tail -n +$((LINHAS_PULADAS + 1))
 
     else
         echo "host_destino,porta_destino,protocolo,bytes_transferidos,bits_por_segundo,retransmissoes"
-        jq -Rsr 'sub("^[^{]*";"") | fromjson | .intervals[].sum as $soma | .start.connected[0] as $conexao | "\($conexao.remote_host),\($conexao.remote_port),\(.start.test_start.protocol)_\(.end.sender_tcp_congestion)_\(.end.receiver_tcp_congestion),\($soma.bytes),\($soma.bits_per_second),\($soma.retransmits)"' "$ARQUIVO_JSON"
+        jq -Rsr 'sub("^[^{]*";"") | fromjson | .intervals[].sum as $soma | .start.connected[0] as $conexao | "\($conexao.remote_host),\($conexao.remote_port),\(.start.test_start.protocol)_\(.end.sender_tcp_congestion)_\(.end.receiver_tcp_congestion),\($soma.bytes),\($soma.bits_per_second),\($soma.retransmits)"' "$ARQUIVO_JSON" | tail -n +$((LINHAS_PULADAS + 1))
     fi
 fi
