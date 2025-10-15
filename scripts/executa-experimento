@@ -288,6 +288,24 @@ obtem_duracao_do_comando_iperf(){
     echo $comando_iperf3_cliente | awk '{ while (match($0, /-t[ ]*([0-9]+)/, a)) { val=a[1]; $0=substr($0, RSTART+RLENGTH) } } END { if(val) print val }'
 }
 
+obtem_quantidade_amostras_omitidas(){
+    local comando_iperf3="$1"
+    local quantidade_amostras_omitidas=0
+
+    # Deverá retornar zero se não houver a opção -O ou --omit
+    if ! echo $comando_iperf3 | grep -qE '(-O|--omit)[ ]*([0-9]+)'; then
+        echo 0
+        return
+    fi
+
+    quantidade_amostras_omitidas=$(echo $comando_iperf3 | awk 'match($0, /-O[ ]*([0-9]+)/, a) { val=a[1] } END { if(val) print val }')
+    if [ -z "$quantidade_amostras_omitidas" ]; then
+        quantidade_amostras_omitidas=$(echo $comando_iperf3 | awk 'match($0, /--omit[ ]*([0-9]+)/, a) { val=a[1] } END { if(val) print val }')
+    fi
+
+    echo $quantidade_amostras_omitidas
+}
+
 ajustes(){
     echo -e "\n${verde}Aplicando ajustes...${normal}\n"
 }
