@@ -306,10 +306,6 @@ obtem_quantidade_amostras_omitidas(){
     echo $quantidade_amostras_omitidas
 }
 
-ajustes(){
-    echo -e "\n${verde}Aplicando ajustes...${normal}\n"
-}
-
 verifica_dependencias(){
     # Verifica se as dependências do sistema necessárias estão instaladas
     dependencias=(numactl python3 jq)
