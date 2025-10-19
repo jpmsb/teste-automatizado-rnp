@@ -346,11 +346,22 @@ verifica_dependencias(){
 
 contagem_regressiva(){
     local valor_inicial=$1
-    local texto="$2"
+    local valor_extra=$2
+    local texto="$3"
+    local contagem_atual=0
+    local contagem_extra=$valor_extra
 
-    for i in $(seq $valor_inicial -1 1); do
+    for i in $(seq $((valor_inicial + valor_extra)) -1 1); do
         printf "\033[K"
-        printf "$texto ${ciano}[Tempo restante: $i]${normal}\r"
+        contagem_atual=$i
+
+        if [ "$contagem_atual" -gt "$valor_inicial" ]; then
+            printf "$texto ${ciano}[Tempo restante: $valor_inicial][+${contagem_extra}]${normal}\r"
+            contagem_extra=$((contagem_extra - 1))
+        else
+            printf "$texto ${ciano}[Tempo restante: $contagem_atual]${normal}\r"
+        fi
+
         sleep 1
     done
 
@@ -445,7 +456,7 @@ roda_teste(){
     setsid $comando_cliente $args_extras -J -i 1 -t $duracao > $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.json 2>&1 < /dev/null &
 
     mostrar_e_registrar "${amarelo}Cliente iniciado${texto_nucleo_cliente}...${normal}" "$log_teste" ; printf "\e[1A\r"
-    contagem_regressiva $duracao "${amarelo}Cliente iniciado${texto_nucleo_cliente}...${normal}"
+    contagem_regressiva $duracao $quantidade_amostras_omitidas "${amarelo}Cliente iniciado${texto_nucleo_cliente}...${normal}"
     wait $(jobs -p)
 
     sleep 1
