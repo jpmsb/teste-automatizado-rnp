@@ -345,8 +345,8 @@ verifica_dependencias(){
 }
 
 contagem_regressiva(){
-    valor_inicial=$1
-    texto="$2"
+    local valor_inicial=$1
+    local texto="$2"
 
     for i in $(seq $valor_inicial -1 1); do
         printf "\033[K"
