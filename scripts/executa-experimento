@@ -395,7 +395,7 @@ roda_teste(){
     local comando_iperf3_cliente=$(echo $comando_cliente | sed 's/.*\(iperf3 .*\)/\1/')
     local comando_iperf3_servidor=$(echo $comando_servidor | sed 's/.*\(iperf3 .*\)/\1/')
 
-    local banda=$(echo $comando_iperf3_cliente | awk '{ while (match($0, /-b[ ]*([0-9]+[MG]?)/, a)) { val=a[1]; $0=substr($0, RSTART+RLENGTH) } } END { if(val) print val }')
+    local banda=$(echo $comando_iperf3_cliente | awk '{ while (match($0, /-b[[:space:]]*([^[:space:]]+)/, a)) { val=a[1]; $0=substr($0, RSTART+RLENGTH) } } END { if (val) print val }')
     local quantidade_fluxos=$(echo $comando_iperf3_cliente | awk '{ while (match($0, /-P[ ]*([0-9]+)/, a)) { val=a[1]; $0=substr($0, RSTART+RLENGTH) } } END { if(val) print val }')
 
     # Verificando se há medições omitidas no comando do cliente
