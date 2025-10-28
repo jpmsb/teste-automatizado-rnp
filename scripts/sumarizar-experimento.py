@@ -1086,13 +1086,16 @@ def plot_vazao_comparativo_por_teste(resultados_dir, tests, vazao_aggregate, mos
     plt.savefig(svg_path)
     plt.close()
 
-def plot_vazao_servidor_comparativo(resultados_dir, tests, vazao_aggregate, mostrar_intervalo_confianca=False, mostrar_media=False):
+def plot_vazao_servidor_comparativo(resultados_dir, tests, vazao_aggregate, mostrar_intervalo_confianca=False, mostrar_media=False, ordenar_barras=False):
     # Mantém apenas testes presentes no agregado e na mesma ordem do parâmetro 'tests'
     tests_sorted = [t for t in tests if t in vazao_aggregate]
     if not tests_sorted:
         print("Nenhum teste com dados de vazão no agregado.")
         return
 
+    if ordenar_barras:
+        # Ordena por amplitude (vazão do servidor) em ordem crescente
+        tests_sorted = sorted(tests_sorted, key=lambda x: vazao_aggregate[x][1][0])
     x = np.arange(len(tests_sorted))
 
     # Vetores em bps
@@ -1477,6 +1480,8 @@ def main():
                         help="Mostra as linhas do intervalo de confiança nos gráficos de barras.")
     parser.add_argument("-m", "--media", action="store_true",
                         help="Traça uma linha horizontal de média sobre cada grupo de barras nos gráficos.")
+    parser.add_argument("-o", "--ordenar", action="store_true",
+                        help="Deixa as barras dos gráficos de vazão ordenadas de forma crescente.")
     args = parser.parse_args()
 
     resultados_dir = args.resultados
@@ -1485,6 +1490,7 @@ def main():
     referencia = args.referencia
     mostrar_intervalo_confianca = args.intervalo_confianca
     mostrar_media = args.media
+    ordenar_barras = args.ordenar
 
     cpu_aggregate = {}
     perda_aggregate = {}
@@ -1527,7 +1533,7 @@ def main():
     plot_cpu_comparativo_por_nucleo(sumarizado_dir, tests, cpu_aggregate, mostrar_intervalo_confianca)
     plot_perda_comparativo_por_teste(sumarizado_dir, tests, perda_aggregate, mostrar_intervalo_confianca)
     plot_vazao_comparativo_por_teste(sumarizado_dir, tests, vazao_aggregate, mostrar_intervalo_confianca)
-    plot_vazao_servidor_comparativo(sumarizado_dir, tests, vazao_aggregate, mostrar_intervalo_confianca, mostrar_media)
+    plot_vazao_servidor_comparativo(sumarizado_dir, tests, vazao_aggregate, mostrar_intervalo_confianca, mostrar_media, ordenar_barras)
 
     agg_perda_temp = aggregate_all_perda_temporal(resultados_dir, tests)
     plot_perda_temporal_comparativo_por_teste(sumarizado_dir, tests, agg_perda_temp)
