@@ -226,6 +226,8 @@ Abaixo, é demonstrado como utilizar as rotinas:
 
     - [opcional] `-m`, `--media`: traça uma linha horizontal, representando a média dos valores nos gráficos de barras;
 
+    - [opcional] `-o`, `--ordenar`: deixa as barras dos gráficos de vazão ordenadas de forma crescente.
+
     Exemplo de uso:
 
     ```bash
