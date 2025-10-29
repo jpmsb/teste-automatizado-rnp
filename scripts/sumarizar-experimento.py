@@ -1482,6 +1482,8 @@ def main():
                         help="Traça uma linha horizontal de média sobre cada grupo de barras nos gráficos.")
     parser.add_argument("-o", "--ordenar", action="store_true",
                         help="Deixa as barras dos gráficos de vazão ordenadas de forma crescente.")
+    parser.add_argument("--inverter", action="store_true",
+                        help="Deixa as barras dos gráficos de vazão ordenadas de forma decrescente.")
     args = parser.parse_args()
 
     resultados_dir = args.resultados
@@ -1491,6 +1493,7 @@ def main():
     mostrar_intervalo_confianca = args.intervalo_confianca
     mostrar_media = args.media
     ordenar_barras = args.ordenar
+    inverter_barras = args.inverter
 
     cpu_aggregate = {}
     perda_aggregate = {}
