@@ -1086,7 +1086,7 @@ def plot_vazao_comparativo_por_teste(resultados_dir, tests, vazao_aggregate, mos
     plt.savefig(svg_path)
     plt.close()
 
-def plot_vazao_servidor_comparativo(resultados_dir, tests, vazao_aggregate, mostrar_intervalo_confianca=False, mostrar_media=False, ordenar_barras=False):
+def plot_vazao_servidor_comparativo(resultados_dir, tests, vazao_aggregate, mostrar_intervalo_confianca=False, mostrar_media=False, ordenar_barras=False, inverter_barras=False):
     # Mantém apenas testes presentes no agregado e na mesma ordem do parâmetro 'tests'
     tests_sorted = [t for t in tests if t in vazao_aggregate]
     if not tests_sorted:
@@ -1096,6 +1096,9 @@ def plot_vazao_servidor_comparativo(resultados_dir, tests, vazao_aggregate, most
     if ordenar_barras:
         # Ordena por amplitude (vazão do servidor) em ordem crescente
         tests_sorted = sorted(tests_sorted, key=lambda x: vazao_aggregate[x][1][0])
+    elif inverter_barras:
+        # Ordena por amplitude (vazão do servidor) em ordem decrescente
+        tests_sorted = sorted(tests_sorted, key=lambda x: vazao_aggregate[x][1][0], reverse=True)
     x = np.arange(len(tests_sorted))
 
     # Vetores em bps
@@ -1536,7 +1539,7 @@ def main():
     plot_cpu_comparativo_por_nucleo(sumarizado_dir, tests, cpu_aggregate, mostrar_intervalo_confianca)
     plot_perda_comparativo_por_teste(sumarizado_dir, tests, perda_aggregate, mostrar_intervalo_confianca)
     plot_vazao_comparativo_por_teste(sumarizado_dir, tests, vazao_aggregate, mostrar_intervalo_confianca)
-    plot_vazao_servidor_comparativo(sumarizado_dir, tests, vazao_aggregate, mostrar_intervalo_confianca, mostrar_media, ordenar_barras)
+    plot_vazao_servidor_comparativo(sumarizado_dir, tests, vazao_aggregate, mostrar_intervalo_confianca, mostrar_media, ordenar_barras, inverter_barras)
 
     agg_perda_temp = aggregate_all_perda_temporal(resultados_dir, tests)
     plot_perda_temporal_comparativo_por_teste(sumarizado_dir, tests, agg_perda_temp)
