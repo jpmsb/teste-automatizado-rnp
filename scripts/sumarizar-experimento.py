@@ -1113,11 +1113,14 @@ def plot_vazao_servidor_comparativo(resultados_dir, tests, vazao_aggregate, most
     server_values = [v / fator for v in server_values_bps]
     server_err    = [e / fator for e in server_err_bps]
 
-    # Média das barras
-    media_barras = (np.mean(server_values) if server_values else 0.0)
+    # Média das barras em bps
+    media_bps = np.mean(server_values_bps) if server_values_bps else 0.0
+    media_barras = media_bps / fator if fator > 0 else 0.0
 
     # Ajusta o topo para que caiba o rótulo
     y_max = max((_safe(v) + _safe(e)) for v, e in zip(server_values, server_err)) if server_values else 0.0
+    if mostrar_media:
+        y_max = max(y_max, media_barras)
     top = (y_max * 1.08) if y_max > 0 else 1.0       # 8% de folga no topo
     label_offset = 0.005 * top                       # distância do valor até o topo da barra
 
@@ -1139,6 +1142,17 @@ def plot_vazao_servidor_comparativo(resultados_dir, tests, vazao_aggregate, most
             linestyles='solid',
             linewidth=5,
             label="Média"
+        )
+        # Rótulo do valor da média na escala do gráfico
+        plt.text(
+            x_end + width * 0.3,
+            media_barras,
+            f"{format_value(media_bps, fator):.2f}",
+            ha='left',
+            va='center',
+            fontsize=9,
+            color='orange',
+            weight='bold'
         )
 
     # Rótulos acima das barras
