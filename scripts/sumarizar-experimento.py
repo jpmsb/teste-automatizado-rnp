@@ -1500,7 +1500,7 @@ def main():
     parser.add_argument("-o", "--ordenar", action="store_true",
                         help="Deixa as barras dos gráficos de vazão ordenadas de forma crescente.")
     parser.add_argument("--inverter", action="store_true",
-                        help="Deixa as barras dos gráficos de vazão ordenadas de forma decrescente.")
+                        help="Deixa as barras do gráfico que compara a vazão do servidor entre os testes ordenadas de forma decrescente")
     args = parser.parse_args()
 
     resultados_dir = args.resultados
