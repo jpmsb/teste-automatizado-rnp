@@ -228,6 +228,8 @@ Abaixo, é demonstrado como utilizar as rotinas:
 
     - [opcional] `-o`, `--ordenar`: deixa as barras dos gráficos de vazão ordenadas de forma crescente.
 
+    - [opcional] `--inverter`: Deixa as barras do gráfico que compara a vazão do servidor entre os testes ordenadas de forma decrescente.
+
     Exemplo de uso:
 
     ```bash
