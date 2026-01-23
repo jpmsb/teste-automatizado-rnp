@@ -377,6 +377,34 @@ mostrar_e_registrar(){
     echo -e "$texto" | tee >(sed $'s/\033[[][^A-Za-z]*m//g' >> "$arquivo_log")
 }
 
+testa_um_segundo(){
+    # Roda o comando do iperf3 por 1 segundo e verifica se retornou um erro
+    local comando_iperf3="$1"
+    local duracao=1
+    local tipo_comando=""
+
+    # Detecta se o comando informado é cliente ou servidor
+    local comando_limpo=$(echo "$comando_iperf3" | sed 's/.*\(iperf3.*\)/\1/')
+
+    if echo "$comando_limpo" | grep -qE '\s(-s|--server)(\s|$)'; then
+        tipo_comando="servidor"
+
+    elif echo "$comando_limpo" | grep -qE '\s(-c|--client)(\s|$)'; then
+        tipo_comando="cliente"
+
+    elif echo "$comando_iperf3" | grep -qE 'iperf3\s+([0-9]{1,3}\.){3}[0-9]{1,3}|iperf3\s+[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|\s([0-9]{1,3}\.){3}[0-9]{1,3}(\s|$)'; then
+        tipo_comando="cliente"
+    else
+        tipo_comando="servidor"
+    fi
+
+    resultado=$($comando_iperf3 -J -i 1 -t $duracao 2>&1)
+    if [ $? -ne 0 ]; then
+        echo -e "\n${vermelho}Erro: o comando do $tipo_comando iperf3 retornou um erro: $resultado${normal}\n"
+        exit 1
+    fi
+}
+
 roda_teste(){
     local rodada_atual="$1"
     local comando_cliente="$2"
