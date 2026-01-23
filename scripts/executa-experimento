@@ -473,6 +473,9 @@ roda_teste(){
     mostrar_e_registrar "\n${verde}Executando a rodada $rodada_atual do teste de $duracao segundos${texto_banda}${texto_quantidade_amostras_omitidas}...${normal}\n" "$log_teste"
     mkdir -p $dir_resultados_teste/rodada_$rodada_atual
 
+    testa_um_segundo "$comando_servidor"
+    testa_um_segundo "$comando_cliente"
+
     mostrar_e_registrar "${amarelo}Servidor iniciado${texto_nucleo_servidor}...${normal}" "$log_teste"
     $comando_servidor -J --one-off -i 1 > $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.json 2>&1 < /dev/null &
 
