@@ -446,18 +446,59 @@ roda_teste(){
     mkdir -p $dir_resultados_teste/rodada_$rodada_atual
 
     mostrar_e_registrar "${amarelo}Servidor iniciado${texto_nucleo_servidor}...${normal}" "$log_teste"
-    $comando_servidor -J --one-off -i 1 > $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.json 2>&1 < /dev/null &
+
+    arquivo_erro_servidor="$dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server_erro.log"
+
+    $comando_servidor -J --one-off -i 1 > $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.json 2> "$arquivo_erro_servidor" < /dev/null &
+    pid_servidor=$!
+
+    # Verifica se o servidor iperf3 ainda está rodando e encerra se não estiver
+    sleep 0.5
+    if ! kill -0 $pid_servidor 2>/dev/null; then
+        wait $pid_servidor
+        resultado_servidor_iperf3=$?
+        mensagem_erro_servidor=""
+        if [ -f "$arquivo_erro_servidor" ] && [ -s "$arquivo_erro_servidor" ]; then
+            mensagem_erro_servidor=$(cat "$arquivo_erro_servidor")
+        fi
+        echo -e "${vermelho}Erro ao iniciar o servidor iperf3 (código: $resultado_servidor_iperf3).${normal}"
+        if [ -n "$mensagem_erro_servidor" ]; then
+            echo -e "${vermelho}Mensagem de erro: $mensagem_erro_servidor${normal}"
+        fi
+        exit 1
+    fi
 
     sleep 1
     mostrar_e_registrar "${amarelo}Preparando o mpstat...${normal}\r" "$log_teste"
     numactl -C 0 $dir_este_script/mpstat-trigger $duracao $dir_resultados_teste/rodada_$rodada_atual rodada_$rodada_atual-${apelido}-mpstat.log 2>&1 < /dev/null &
 
     sleep 1
-    setsid $comando_cliente $args_extras -J -i 1 -t $duracao > $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.json 2>&1 < /dev/null &
+    arquivo_erro_cliente="$dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client_erro.log"
+
+    setsid $comando_cliente $args_extras -J -i 1 -t $duracao > $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_client.json 2> "$arquivo_erro_cliente" < /dev/null &
+    pid_cliente=$!
+
+    # Verifica se o cliente iperf3 ainda está rodando e encerra se não estiver
+    sleep 0.5
+    if ! kill -0 $pid_cliente 2>/dev/null; then
+        wait $pid_cliente
+        resultado_cliente_iperf3=$?
+        mensagem_erro_cliente=""
+        if [ -f "$arquivo_erro_cliente" ] && [ -s "$arquivo_erro_cliente" ]; then
+            mensagem_erro_cliente=$(cat "$arquivo_erro_cliente")
+        fi
+        echo -e "${vermelho}Erro ao iniciar o cliente iperf3 (código: $resultado_cliente_iperf3).${normal}"
+        if [ -n "$mensagem_erro_cliente" ]; then
+            echo -e "${vermelho}Mensagem de erro: $mensagem_erro_cliente${normal}"
+        fi
+        exit 1
+    fi
 
     mostrar_e_registrar "${amarelo}Cliente iniciado${texto_nucleo_cliente}...${normal}" "$log_teste" ; printf "\e[1A\r"
     contagem_regressiva $duracao $quantidade_amostras_omitidas "${amarelo}Cliente iniciado${texto_nucleo_cliente}...${normal}"
     wait $(jobs -p)
+    wait $pid_servidor
+    resultado_servidor_iperf3=$?
 
     sleep 1
     # Processa os resultados para CSV
