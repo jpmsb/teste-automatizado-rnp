@@ -700,7 +700,7 @@ if [ -z "$boxWidth" ]; then
 fi
 
 for ((i = 0; i < boxWidth; i++)); do
-    linha_horizontal+="#"
+    linha_horizontal+="═"
 done
 
 # Executa um ou mais testes
@@ -726,9 +726,7 @@ for teste in "${testes[@]}"; do
     fi
 
     echo -e "\nInício: $(date '+%Y-%m-%d %H:%M:%S')" > "$log_teste"
-    mostrar_e_registrar "\n${linha_horizontal}\n" "$log_teste"
-    mostrar_e_registrar "Os resultados do experimento serão salvos em ↓:" "$log_teste"
-    mostrar_e_registrar "${verde}$dir_resultados_teste${normal}\n" "$log_teste"
+    mostrar_e_registrar "\n${linha_horizontal//═/#}\n" "$log_teste"
     mostrar_e_registrar "Nome do teste: ${verde}${teste}${normal}" "$log_teste"
 
     echo "[Teste]" > $dir_resultados_teste/$apelido-conf.ini
@@ -749,14 +747,19 @@ for teste in "${testes[@]}"; do
         mostrar_e_registrar "Duração de cada rodada: ${verde}${duracao} segundos${normal}" "$log_teste"
     fi
 
+    mostrar_e_registrar "\nOs resultados do experimento serão salvos em ↓:" "$log_teste"
+    mostrar_e_registrar "${verde}$dir_resultados_teste${normal}\n" "$log_teste"
+
     if [ -n "$preparo_antes" ]; then
-        mostrar_e_registrar "\nPreparando o ambiente antes do teste usando a rotina abaixo ↓:" "$log_teste"
+        mostrar_e_registrar "Preparando o ambiente antes do teste usando a rotina abaixo ↓:" "$log_teste"
         mostrar_e_registrar "${verde}${preparo_antes}${normal}" "$log_teste"
         echo "PreparoAntes=${preparo_antes}" >> $dir_resultados_teste/$apelido-conf.ini
         bash $preparo_antes > $dir_resultados_teste/$apelido-preparo_antes.log 2>&1
     else
         echo "; PreparoAntes=" >> $dir_resultados_teste/$apelido-conf.ini
     fi
+
+    mostrar_e_registrar "\n${linha_horizontal//═/#}" "$log_teste"
 
     for rodada_atual in $(seq 1 $rodadas); do
         mostrar_e_registrar "\n${linha_horizontal}" "$log_teste"
