@@ -309,6 +309,59 @@ obtem_quantidade_amostras_omitidas(){
     echo $quantidade_amostras_omitidas
 }
 
+verifica_conexao_servidor_iperf3(){
+    local comando_cliente="$1"
+    local comando_iperf3_cliente=$(echo "$comando_cliente" | sed 's/.*\(iperf3 .*\)/\1/')
+    local endereco_servidor=""
+    local porta=5201
+
+    # Obtém o endereço do servidor a partir do comando do cliente
+    endereco_servidor=$(echo "$comando_iperf3_cliente" | awk '{
+        while (match($0, /(-c|--client)[[:space:]]+([^[:space:]]+)/, a)) {
+            val = a[2]
+            if (substr(val, 1, 1) != "-") {
+                print val
+                exit
+            }
+            $0 = substr($0, RSTART + RLENGTH)
+        }
+    }')
+
+    # Se não encontrou endereço, não é um comando de cliente válido
+    if [ -z "$endereco_servidor" ]; then
+        return 1
+    fi
+
+    # Obtém a porta do servidor a partir do comando do cliente
+    local porta_extraida=$(echo "$comando_iperf3_cliente" | awk '{
+        if (match($0, /(-p|--port)[[:space:]]+([0-9]+)/, a)) {
+            print a[2]
+        }
+    }')
+
+    if [ -n "$porta_extraida" ]; then
+        porta=$porta_extraida
+    fi
+
+    # Testa conexão TCP usando /dev/tcp do bash, com timeout de 2 segundos
+    if command -v timeout >/dev/null 2>&1; then
+        if timeout 2 bash -c "echo > /dev/tcp/$endereco_servidor/$porta" 2>/dev/null; then
+            return 0
+        else
+            return 1
+        fi
+    else
+        # Fallback: tenta conexão sem timeout, que pode travar se o servidor não responder
+        if (exec 3<>/dev/tcp/$endereco_servidor/$porta) 2>/dev/null; then
+            exec 3<&-
+            exec 3>&-
+            return 0
+        else
+            return 1
+        fi
+    fi
+}
+
 verifica_dependencias(){
     # Verifica se as dependências do sistema necessárias estão instaladas
     dependencias=(numactl python3 jq)
