@@ -524,6 +524,16 @@ roda_teste(){
             fi
             exit 1
         fi
+    else
+        mostrar_e_registrar "${amarelo}Aviso: ${rosa}pulando a execução do servidor iperf3. Checando a conexão...${normal}" "$log_teste"
+
+        # Verifica, através do comando do cliente, se é possível se conectar ao servidor
+        if ! verifica_conexao_servidor_iperf3 "$comando_cliente"; then
+            echo -e "${vermelho}Erro: não foi possível conectar ao servidor iperf3.${normal}"
+            exit 1
+        fi
+
+        mostrar_e_registrar "${verde}Verificado que o servidor iperf3 está acessível!${normal}" "$log_teste"
     fi
 
     sleep 1
