@@ -274,6 +274,9 @@ obtem_teste() {
                     ;;
                 ComandoServidor=*)
                     comando_servidor="${linha#ComandoServidor=}"
+                    if [ -z "$comando_servidor" ]; then
+                        comando_servidor=true
+                    fi
                     ;;
             esac
         fi
@@ -445,27 +448,29 @@ roda_teste(){
     mostrar_e_registrar "\n${verde}Executando a rodada $rodada_atual do teste de $duracao segundos${texto_banda}${texto_quantidade_amostras_omitidas}...${normal}\n" "$log_teste"
     mkdir -p $dir_resultados_teste/rodada_$rodada_atual
 
-    mostrar_e_registrar "${amarelo}Servidor iniciado${texto_nucleo_servidor}...${normal}" "$log_teste"
+    if [ -n "$comando_servidor" ]; then
+        mostrar_e_registrar "${amarelo}Servidor iniciado${texto_nucleo_servidor}...${normal}" "$log_teste"
 
-    arquivo_erro_servidor="$dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server_erro.log"
+        arquivo_erro_servidor="$dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server_erro.log"
 
-    $comando_servidor -J --one-off -i 1 > $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.json 2> "$arquivo_erro_servidor" < /dev/null &
-    pid_servidor=$!
+        $comando_servidor -J --one-off -i 1 > $dir_resultados_teste/rodada_$rodada_atual/rodada_$rodada_atual-${apelido}-iperf3_server.json 2> "$arquivo_erro_servidor" < /dev/null &
+        pid_servidor=$!
 
-    # Verifica se o servidor iperf3 ainda está rodando e encerra se não estiver
-    sleep 0.5
-    if ! kill -0 $pid_servidor 2>/dev/null; then
-        wait $pid_servidor
-        resultado_servidor_iperf3=$?
-        mensagem_erro_servidor=""
-        if [ -f "$arquivo_erro_servidor" ] && [ -s "$arquivo_erro_servidor" ]; then
-            mensagem_erro_servidor=$(cat "$arquivo_erro_servidor")
+        # Verifica se o servidor iperf3 ainda está rodando e encerra se não estiver
+        sleep 0.5
+        if ! kill -0 $pid_servidor 2>/dev/null; then
+            wait $pid_servidor
+            resultado_servidor_iperf3=$?
+            mensagem_erro_servidor=""
+            if [ -f "$arquivo_erro_servidor" ] && [ -s "$arquivo_erro_servidor" ]; then
+                mensagem_erro_servidor=$(cat "$arquivo_erro_servidor")
+            fi
+            echo -e "${vermelho}Erro ao iniciar o servidor iperf3 (código: $resultado_servidor_iperf3).${normal}"
+            if [ -n "$mensagem_erro_servidor" ]; then
+                echo -e "${vermelho}Mensagem de erro: $mensagem_erro_servidor${normal}"
+            fi
+            exit 1
         fi
-        echo -e "${vermelho}Erro ao iniciar o servidor iperf3 (código: $resultado_servidor_iperf3).${normal}"
-        if [ -n "$mensagem_erro_servidor" ]; then
-            echo -e "${vermelho}Mensagem de erro: $mensagem_erro_servidor${normal}"
-        fi
-        exit 1
     fi
 
     sleep 1
@@ -713,20 +718,24 @@ for teste in "${testes[@]}"; do
     rm -rf $dir_resultados_teste
     mkdir -p $dir_resultados_teste
 
+    mostrar_e_registrar "\n${linha_horizontal//═/#}\n" "$log_teste"
+
     if [ -n "$arquivo_receita" ]; then
         obtem_teste "$conteudo_receita" "$teste"
 
         if [ -z "$comando_cliente" ]; then
             echo -e "${vermelho}Erro: comando de cliente não encontrado.${normal}"
             exit 1
-        elif [ -z "$comando_servidor" ]; then
+
+        # Se o valor de "comando_servidor" for "true",
+        # então a chave está definida na receita, porém não foi preenchida
+        elif ! $comando_servidor; then
             echo -e "${vermelho}Erro: comando de servidor não encontrado.${normal}"
             exit 1
         fi
     fi
 
     echo -e "\nInício: $(date '+%Y-%m-%d %H:%M:%S')" > "$log_teste"
-    mostrar_e_registrar "\n${linha_horizontal//═/#}\n" "$log_teste"
     mostrar_e_registrar "Nome do teste: ${verde}${teste}${normal}" "$log_teste"
 
     echo "[Teste]" > $dir_resultados_teste/$apelido-conf.ini
@@ -740,7 +749,13 @@ for teste in "${testes[@]}"; do
     fi
 
     echo "ComandoCliente=${comando_cliente}" >> $dir_resultados_teste/$apelido-conf.ini
-    echo "ComandoServidor=${comando_servidor}" >> $dir_resultados_teste/$apelido-conf.ini
+
+    if [ -z "$comando_servidor" ]; then
+        mostrar_e_registrar "Observação: ${amarelo}comando do servidor ausente. Executará somente o cliente.${normal}" "$log_teste"
+        echo "; ComandoServidor=" >> $dir_resultados_teste/$apelido-conf.ini
+    else
+        echo "ComandoServidor=${comando_servidor}" >> $dir_resultados_teste/$apelido-conf.ini
+    fi
 
     if [ -z "$arquivo_receita" ]; then
         mostrar_e_registrar "Quantidade de rodadas: ${verde}${rodadas}${normal}" "$log_teste"
