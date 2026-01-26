@@ -66,9 +66,9 @@ Abaixo, é demonstrado como utilizar as rotinas:
 
     - [obrigatório] `-c`, `--comando-cliente`: comando do `iperf` do cliente;
 
-    - [obrigatório] `-s`, `--comando-servidor`: comando do `iperf` do servidor;
-
     - [obrigatório] `-a`, `--apelido`: apelido do teste, podendo conter espaços. Entretanto, o nome do diretório onde os resultados serão salvos terá os espaços substituídos por `_`;
+
+    - [opcional] `-s`, `--comando-servidor`: comando do `iperf` do servidor. Quando omitido, a rotina pulará a instanciação do servidor e verificará se é possível realizar a conexão com o servidor através do comando do cliente;
 
     - [opcional] `-t`, `--duracao`: tempo de execução, em segundos, do teste. Quando não informado, o valor padrão é 10 segundos;
 
