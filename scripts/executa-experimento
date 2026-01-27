@@ -781,7 +781,7 @@ for teste in "${testes[@]}"; do
     rm -rf $dir_resultados_teste
     mkdir -p $dir_resultados_teste
 
-    mostrar_e_registrar "\n${linha_horizontal//═/#}\n" "$log_teste"
+    mostrar_e_registrar "\n${linha_horizontal//═/█}\n" "$log_teste"
 
     if [ -n "$arquivo_receita" ]; then
         obtem_teste "$conteudo_receita" "$teste"
@@ -837,7 +837,7 @@ for teste in "${testes[@]}"; do
         echo "; PreparoAntes=" >> $dir_resultados_teste/$apelido-conf.ini
     fi
 
-    mostrar_e_registrar "\n${linha_horizontal//═/#}" "$log_teste"
+    mostrar_e_registrar "\n${linha_horizontal//═/█}" "$log_teste"
 
     for rodada_atual in $(seq 1 $rodadas); do
         mostrar_e_registrar "\n${linha_horizontal}" "$log_teste"
