@@ -275,7 +275,7 @@ obtem_teste() {
                 ComandoServidor=*)
                     comando_servidor="${linha#ComandoServidor=}"
                     if [ -z "$comando_servidor" ]; then
-                        comando_servidor=true
+                        comando_servidor="declarado_mas_ausente"
                     fi
                     ;;
             esac
@@ -792,7 +792,7 @@ for teste in "${testes[@]}"; do
 
         # Se o valor de "comando_servidor" for "true",
         # então a chave está definida na receita, porém não foi preenchida
-        elif ! $comando_servidor; then
+        elif [ "$comando_servidor" == "declarado_mas_ausente" ]; then
             echo -e "${vermelho}Erro: comando de servidor não encontrado.${normal}"
             exit 1
         fi
