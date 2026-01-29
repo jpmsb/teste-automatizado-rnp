@@ -426,7 +426,7 @@ A seguir, é explicado o que cada seção e parâmetro da receita significa:
     - [opcional] `PreparoAntes`: comando que será executado antes da execução do teste. Pode ser utilizado para preparar o ambiente, como reiniciar serviços, limpar caches etc;
     - [opcional] `PreparoDepois`: comando que será executado após a execução do teste. Pode ser utilizado para limpar o ambiente, como reiniciar serviços, limpar caches, etc;
     - [obrigatório] `ComandoCliente`: comando do `iperf3` do cliente;
-    - [obrigatório] `ComandoServidor`: comando do `iperf3` do servidor.
+    - [opcional] `ComandoServidor`: comando do `iperf3` do servidor.
 
 Para comentar algum parâmetro, basta utilizar o caractere `;` no início da linha:
 
